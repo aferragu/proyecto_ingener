@@ -6,6 +6,13 @@
 WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
 
+void updateLed() {
+    if (WiFi.status() == WL_CONNECTED && mqttClient.connected())
+        LED_ON();
+    else
+        LED_OFF();
+}
+
 void connectWiFi() {
     Serial.printf("[WiFi] Conectando a %s", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);

@@ -8,3 +8,4 @@ void connectWiFi();
 void connectMQTT();
 void publishTelemetry(JsonDocument& telemetry);
 void onRpcMessage(char* topic, byte* payload, unsigned int length);
+void updateLed();

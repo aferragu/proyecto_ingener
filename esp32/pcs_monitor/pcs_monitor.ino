@@ -16,11 +16,6 @@
 // RPCs: powerOn, shutdown, setPower {"value": X}
 // =============================================================================
 
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <ArduinoJson.h>
-#include "driver/twai.h"
-
 #include "config.h"
 #include "modbus.h"
 #include "inverter.h"
@@ -34,13 +29,6 @@ unsigned long lastModbusMs  = 0;
 unsigned long lastCanMs     = 0;
 unsigned long lastPublishMs = 0;
 unsigned long lastVerifyMs  = 0;
-
-void updateLed() {
-    if (WiFi.status() == WL_CONNECTED && mqttClient.connected())
-        LED_ON();
-    else
-        LED_OFF();
-}
 
 void setup() {
     Serial.begin(115200);
