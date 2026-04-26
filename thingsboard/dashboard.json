@@ -3,423 +3,1271 @@
   "configuration": {
     "description": "SinoSoar SP6030 via ESP32 Modbus RTU V3.0",
     "widgets": {
-
       "w_running": {
-        "isSystemType": true,
-        "bundleAlias": "status_indicators",
-        "typeAlias": "status_indicator",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Estado",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 0,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 0,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "running", "label": "Estado", "type": "timeseries"}]
-          }],
-          "settings": {
-            "layout": "square",
-            "showLabel": true,
-            "labelFunction": "return value == 1 ? 'RUNNING' : 'STOPPED';",
-            "colorFunction": "return value == 1 ? '#4CAF50' : '#F44336';"
-          }
+          "title": "Estado",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "running",
+                  "type": "timeseries",
+                  "label": "Estado",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe2 RUNNING' : '\ud83d\udd34 STOPPED';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_fault": {
-        "isSystemType": true,
-        "bundleAlias": "status_indicators",
-        "typeAlias": "status_indicator",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Fault",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 2,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 2,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "fault", "label": "Fault", "type": "timeseries"}]
-          }],
-          "settings": {
-            "layout": "square",
-            "showLabel": true,
-            "labelFunction": "return value == 1 ? 'FAULT' : 'OK';",
-            "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
-          }
+          "title": "Fault",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "fault",
+                  "type": "timeseries",
+                  "label": "Fault",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return value == 1 ? '\ud83d\udd34 FAULT' : '\u2705 OK';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_alarm": {
-        "isSystemType": true,
-        "bundleAlias": "status_indicators",
-        "typeAlias": "status_indicator",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Alarm",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 4,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 4,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "alarm", "label": "Alarm", "type": "timeseries"}]
-          }],
-          "settings": {
-            "layout": "square",
-            "showLabel": true,
-            "labelFunction": "return value == 1 ? 'ALARM' : 'OK';",
-            "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
-          }
+          "title": "Alarm",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "alarm",
+                  "type": "timeseries",
+                  "label": "Alarm",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe1 ALARM' : '\u2705 OK';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_grid_tied": {
-        "isSystemType": true,
-        "bundleAlias": "status_indicators",
-        "typeAlias": "status_indicator",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Red",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 6,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 6,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "grid_tied", "label": "Red", "type": "timeseries"}]
-          }],
-          "settings": {
-            "layout": "square",
-            "showLabel": true,
-            "labelFunction": "return value == 1 ? 'GRID-TIED' : 'OFF-GRID';",
-            "colorFunction": "return value == 1 ? '#4CAF50' : '#FF9800';"
-          }
+          "title": "Red",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "grid_tied",
+                  "type": "timeseries",
+                  "label": "Red",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe2 GRID-TIED' : '\ud83d\udfe1 OFF-GRID';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_derating": {
-        "isSystemType": true,
-        "bundleAlias": "status_indicators",
-        "typeAlias": "status_indicator",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Derating",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 8,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 8,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "derating", "label": "Derating", "type": "timeseries"}]
-          }],
-          "settings": {
-            "layout": "square",
-            "showLabel": true,
-            "labelFunction": "return value == 1 ? 'DERATING' : 'OK';",
-            "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
-          }
+          "title": "Derating",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "derating",
+                  "type": "timeseries",
+                  "label": "Derating",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe1 DERATING' : '\u2705 OK';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_freq": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Frecuencia",
-        "sizeX": 2, "sizeY": 2, "row": 0, "col": 10,
+        "sizeX": 2,
+        "sizeY": 2,
+        "row": 0,
+        "col": 10,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "freq_hz", "label": "Hz", "type": "timeseries"}]
-          }],
-          "settings": {"decimals": 2, "units": "Hz"}
+          "title": "Frecuencia",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "freq_hz",
+                  "type": "timeseries",
+                  "label": "Hz",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' Hz';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
-      "w_p_inv_card": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+      "w_p_inv": {
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Potencia Inversor",
-        "sizeX": 3, "sizeY": 2, "row": 2, "col": 0,
+        "sizeX": 3,
+        "sizeY": 2,
+        "row": 2,
+        "col": 0,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "p_inv_kw", "label": "kW", "type": "timeseries"}]
-          }],
-          "settings": {"decimals": 2, "units": "kW"}
+          "title": "Potencia Inversor",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "p_inv_kw",
+                  "type": "timeseries",
+                  "label": "kW",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
-      "w_grid_p_card": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+      "w_grid_p": {
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Potencia Red",
-        "sizeX": 3, "sizeY": 2, "row": 2, "col": 3,
+        "sizeX": 3,
+        "sizeY": 2,
+        "row": 2,
+        "col": 3,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "grid_p_kw", "label": "kW", "type": "timeseries"}]
-          }],
-          "settings": {"decimals": 2, "units": "kW"}
+          "title": "Potencia Red",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "grid_p_kw",
+                  "type": "timeseries",
+                  "label": "kW",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
-      "w_load_p_card": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+      "w_load_p": {
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Potencia Carga",
-        "sizeX": 3, "sizeY": 2, "row": 2, "col": 6,
+        "sizeX": 3,
+        "sizeY": 2,
+        "row": 2,
+        "col": 6,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "load_p_kw", "label": "kW", "type": "timeseries"}]
-          }],
-          "settings": {"decimals": 2, "units": "kW"}
+          "title": "Potencia Carga",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "load_p_kw",
+                  "type": "timeseries",
+                  "label": "kW",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
-      "w_dc_p_card": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+      "w_dc_p": {
+        "typeFullFqn": "system.cards.simple_card",
         "type": "latest",
-        "title": "Potencia DC",
-        "sizeX": 3, "sizeY": 2, "row": 2, "col": 9,
+        "sizeX": 3,
+        "sizeY": 2,
+        "row": 2,
+        "col": 9,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [{"name": "dc_power_kw", "label": "kW", "type": "timeseries"}]
-          }],
-          "settings": {"decimals": 2, "units": "kW"}
+          "title": "Potencia DC",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "dc_power_kw",
+                  "type": "timeseries",
+                  "label": "kW",
+                  "color": "#2196f3",
+                  "settings": {
+                    "usePostProcessingFunction": true,
+                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
+                  }
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_p_chart": {
-        "isSystemType": true,
-        "bundleAlias": "charts",
-        "typeAlias": "timeseries_flot",
+        "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
-        "title": "Potencias (kW) — histórico",
-        "sizeX": 8, "sizeY": 4, "row": 4, "col": 0,
+        "sizeX": 8,
+        "sizeY": 5,
+        "row": 4,
+        "col": 0,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "p_inv_kw",    "label": "Inversor (kW)", "type": "timeseries", "color": "#2196F3"},
-              {"name": "grid_p_kw",   "label": "Red (kW)",      "type": "timeseries", "color": "#4CAF50"},
-              {"name": "load_p_kw",   "label": "Carga (kW)",    "type": "timeseries", "color": "#FF9800"},
-              {"name": "dc_power_kw", "label": "DC (kW)",       "type": "timeseries", "color": "#9C27B0"}
-            ]
-          }],
-          "settings": {"shadowSize": 0, "smoothLines": true},
-          "timewindow": {"realtime": {"timewindowMs": 3600000}}
+          "title": "Potencias (kW) \u2014 hist\u00f3rico",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "useDashboardTimewindow": true,
+          "enableDataExport": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "p_inv_kw",
+                  "type": "timeseries",
+                  "label": "Inversor (kW)",
+                  "color": "#2196F3",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                },
+                {
+                  "name": "grid_p_kw",
+                  "type": "timeseries",
+                  "label": "Red (kW)",
+                  "color": "#4CAF50",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                },
+                {
+                  "name": "load_p_kw",
+                  "type": "timeseries",
+                  "label": "Carga (kW)",
+                  "color": "#FF9800",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                },
+                {
+                  "name": "dc_power_kw",
+                  "type": "timeseries",
+                  "label": "DC (kW)",
+                  "color": "#9C27B0",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {
+            "showLegend": true,
+            "legendConfig": {
+              "direction": "column",
+              "position": "top",
+              "sortDataKeys": false,
+              "showMin": false,
+              "showMax": false,
+              "showAvg": true,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [],
+            "dataZoom": true,
+            "stack": false,
+            "yAxes": {
+              "default": {
+                "units": null,
+                "decimals": 0,
+                "show": true,
+                "label": "",
+                "position": "left",
+                "showTickLabels": true,
+                "showTicks": true,
+                "ticksColor": "rgba(0, 0, 0, 0.54)",
+                "showLine": true,
+                "lineColor": "rgba(0, 0, 0, 0.54)",
+                "showSplitLines": true,
+                "splitLinesColor": "rgba(0, 0, 0, 0.12)",
+                "id": "default",
+                "order": 0,
+                "min": {
+                  "type": "constant",
+                  "value": null
+                },
+                "max": {
+                  "type": "constant",
+                  "value": null
+                }
+              }
+            },
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipShowDate": true,
+            "tooltipBackgroundColor": "rgba(255, 255, 255, 0.76)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px",
+            "animation": {
+              "animation": true,
+              "animationDuration": 500
+            }
+          },
+          "actions": {}
         }
       },
-
       "w_dc_detail": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "DC",
-        "sizeX": 4, "sizeY": 4, "row": 4, "col": 8,
+        "sizeX": 4,
+        "sizeY": 5,
+        "row": 4,
+        "col": 8,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "dc_voltage_v",  "label": "Tensión DC (V)",   "type": "timeseries"},
-              {"name": "dc_current_a",  "label": "Corriente DC (A)", "type": "timeseries"},
-              {"name": "dc_power_kw",   "label": "Potencia DC (kW)", "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "DC",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "dc_voltage_v",
+                  "type": "timeseries",
+                  "label": "Tensi\u00f3n DC (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "dc_current_a",
+                  "type": "timeseries",
+                  "label": "Corriente DC (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "dc_power_kw",
+                  "type": "timeseries",
+                  "label": "Potencia DC (kW)",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_ac_voltages": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "Tensiones AC inversor",
-        "sizeX": 3, "sizeY": 3, "row": 8, "col": 0,
+        "sizeX": 3,
+        "sizeY": 4,
+        "row": 9,
+        "col": 0,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "v_a",  "label": "Va (V)",  "type": "timeseries"},
-              {"name": "v_b",  "label": "Vb (V)",  "type": "timeseries"},
-              {"name": "v_c",  "label": "Vc (V)",  "type": "timeseries"},
-              {"name": "v_ab", "label": "Vab (V)", "type": "timeseries"},
-              {"name": "v_bc", "label": "Vbc (V)", "type": "timeseries"},
-              {"name": "v_ca", "label": "Vca (V)", "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "Tensiones AC",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "v_a",
+                  "type": "timeseries",
+                  "label": "Va (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "v_b",
+                  "type": "timeseries",
+                  "label": "Vb (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "v_c",
+                  "type": "timeseries",
+                  "label": "Vc (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "v_ab",
+                  "type": "timeseries",
+                  "label": "Vab (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "v_bc",
+                  "type": "timeseries",
+                  "label": "Vbc (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "v_ca",
+                  "type": "timeseries",
+                  "label": "Vca (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_ac_currents": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "Corrientes AC inversor",
-        "sizeX": 3, "sizeY": 3, "row": 8, "col": 3,
+        "sizeX": 3,
+        "sizeY": 4,
+        "row": 9,
+        "col": 3,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "i_a", "label": "Ia (A)", "type": "timeseries"},
-              {"name": "i_b", "label": "Ib (A)", "type": "timeseries"},
-              {"name": "i_c", "label": "Ic (A)", "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "Corrientes AC",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "i_a",
+                  "type": "timeseries",
+                  "label": "Ia (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "i_b",
+                  "type": "timeseries",
+                  "label": "Ib (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "i_c",
+                  "type": "timeseries",
+                  "label": "Ic (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_grid_detail": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "Red",
-        "sizeX": 3, "sizeY": 3, "row": 8, "col": 6,
+        "sizeX": 3,
+        "sizeY": 4,
+        "row": 9,
+        "col": 6,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "grid_v_a",     "label": "Grid Va (V)",    "type": "timeseries"},
-              {"name": "grid_v_b",     "label": "Grid Vb (V)",    "type": "timeseries"},
-              {"name": "grid_v_c",     "label": "Grid Vc (V)",    "type": "timeseries"},
-              {"name": "grid_freq_hz", "label": "Grid Freq (Hz)", "type": "timeseries"},
-              {"name": "grid_p_kw",    "label": "Grid P (kW)",    "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "Red",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "grid_v_a",
+                  "type": "timeseries",
+                  "label": "Grid Va (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "grid_v_b",
+                  "type": "timeseries",
+                  "label": "Grid Vb (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "grid_v_c",
+                  "type": "timeseries",
+                  "label": "Grid Vc (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "grid_freq_hz",
+                  "type": "timeseries",
+                  "label": "Freq (Hz)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "grid_p_kw",
+                  "type": "timeseries",
+                  "label": "P (kW)",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_pf": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "Factor de potencia",
-        "sizeX": 3, "sizeY": 3, "row": 8, "col": 9,
+        "sizeX": 3,
+        "sizeY": 4,
+        "row": 9,
+        "col": 9,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "pf_a",     "label": "PF fase A", "type": "timeseries"},
-              {"name": "pf_b",     "label": "PF fase B", "type": "timeseries"},
-              {"name": "pf_c",     "label": "PF fase C", "type": "timeseries"},
-              {"name": "pf_total", "label": "PF total",  "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "Factor de potencia",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "pf_a",
+                  "type": "timeseries",
+                  "label": "PF fase A",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pf_b",
+                  "type": "timeseries",
+                  "label": "PF fase B",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pf_c",
+                  "type": "timeseries",
+                  "label": "PF fase C",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pf_total",
+                  "type": "timeseries",
+                  "label": "PF total",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       },
-
       "w_load_chart": {
-        "isSystemType": true,
-        "bundleAlias": "charts",
-        "typeAlias": "timeseries_flot",
+        "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
-        "title": "Potencia por fase — carga (kW)",
-        "sizeX": 6, "sizeY": 4, "row": 11, "col": 0,
+        "sizeX": 6,
+        "sizeY": 4,
+        "row": 13,
+        "col": 0,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "load_p_a_kw", "label": "Pa carga", "type": "timeseries", "color": "#F44336"},
-              {"name": "load_p_b_kw", "label": "Pb carga", "type": "timeseries", "color": "#4CAF50"},
-              {"name": "load_p_c_kw", "label": "Pc carga", "type": "timeseries", "color": "#2196F3"}
-            ]
-          }],
-          "settings": {"shadowSize": 0},
-          "timewindow": {"realtime": {"timewindowMs": 3600000}}
+          "title": "Potencia por fase \u2014 carga (kW)",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "useDashboardTimewindow": true,
+          "enableDataExport": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "load_p_a_kw",
+                  "type": "timeseries",
+                  "label": "Pa carga",
+                  "color": "#F44336",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                },
+                {
+                  "name": "load_p_b_kw",
+                  "type": "timeseries",
+                  "label": "Pb carga",
+                  "color": "#4CAF50",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                },
+                {
+                  "name": "load_p_c_kw",
+                  "type": "timeseries",
+                  "label": "Pc carga",
+                  "color": "#2196F3",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "stepType": "start",
+                      "smooth": false,
+                      "lineType": "solid",
+                      "lineWidth": 2,
+                      "showPoints": false,
+                      "showPointLabel": false,
+                      "pointShape": "emptyCircle",
+                      "pointSize": 4,
+                      "fillAreaSettings": {
+                        "type": "none",
+                        "opacity": 0.4,
+                        "gradient": {
+                          "start": 100,
+                          "end": 0
+                        }
+                      }
+                    }
+                  },
+                  "units": "kW",
+                  "decimals": 2
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {
+            "showLegend": true,
+            "legendConfig": {
+              "direction": "column",
+              "position": "top",
+              "sortDataKeys": false,
+              "showMin": false,
+              "showMax": false,
+              "showAvg": true,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [],
+            "dataZoom": true,
+            "stack": false,
+            "yAxes": {
+              "default": {
+                "units": null,
+                "decimals": 0,
+                "show": true,
+                "label": "",
+                "position": "left",
+                "showTickLabels": true,
+                "showTicks": true,
+                "ticksColor": "rgba(0, 0, 0, 0.54)",
+                "showLine": true,
+                "lineColor": "rgba(0, 0, 0, 0.54)",
+                "showSplitLines": true,
+                "splitLinesColor": "rgba(0, 0, 0, 0.12)",
+                "id": "default",
+                "order": 0,
+                "min": {
+                  "type": "constant",
+                  "value": null
+                },
+                "max": {
+                  "type": "constant",
+                  "value": null
+                }
+              }
+            },
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipShowDate": true,
+            "tooltipBackgroundColor": "rgba(255, 255, 255, 0.76)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px",
+            "animation": {
+              "animation": true,
+              "animationDuration": 500
+            }
+          },
+          "actions": {}
         }
       },
-
       "w_load_detail": {
-        "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "attributes_card",
+        "typeFullFqn": "system.cards.attributes_card",
         "type": "latest",
-        "title": "Mediciones carga (V3.0)",
-        "sizeX": 6, "sizeY": 4, "row": 11, "col": 6,
+        "sizeX": 6,
+        "sizeY": 4,
+        "row": 13,
+        "col": 6,
         "config": {
           "showTitle": true,
-          "datasources": [{
-            "type": "entity",
-            "entityAliasId": "inverter",
-            "dataKeys": [
-              {"name": "load_v_a",   "label": "Va carga (V)",   "type": "timeseries"},
-              {"name": "load_v_b",   "label": "Vb carga (V)",   "type": "timeseries"},
-              {"name": "load_v_c",   "label": "Vc carga (V)",   "type": "timeseries"},
-              {"name": "load_i_a",   "label": "Ia carga (A)",   "type": "timeseries"},
-              {"name": "load_i_b",   "label": "Ib carga (A)",   "type": "timeseries"},
-              {"name": "load_i_c",   "label": "Ic carga (A)",   "type": "timeseries"},
-              {"name": "load_p_kw",  "label": "P total (kW)",   "type": "timeseries"},
-              {"name": "load_s_kva", "label": "S total (kVA)",  "type": "timeseries"}
-            ]
-          }],
-          "settings": {}
+          "title": "Mediciones carga (V3.0)",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "backgroundColor": "rgba(0,0,0,0)",
+          "color": "rgba(0,0,0,0.87)",
+          "padding": "0px",
+          "datasources": [
+            {
+              "type": "device",
+              "deviceId": "2241cec0-4160-11f1-b75f-3300bce53b8d",
+              "dataKeys": [
+                {
+                  "name": "load_v_a",
+                  "type": "timeseries",
+                  "label": "Va (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_v_b",
+                  "type": "timeseries",
+                  "label": "Vb (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_v_c",
+                  "type": "timeseries",
+                  "label": "Vc (V)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_i_a",
+                  "type": "timeseries",
+                  "label": "Ia (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_i_b",
+                  "type": "timeseries",
+                  "label": "Ib (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_i_c",
+                  "type": "timeseries",
+                  "label": "Ic (A)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_p_kw",
+                  "type": "timeseries",
+                  "label": "P total (kW)",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "load_s_kva",
+                  "type": "timeseries",
+                  "label": "S total (kVA)",
+                  "color": "#2196f3",
+                  "settings": {}
+                }
+              ],
+              "latestDataKeys": [],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
+            }
+          ],
+          "settings": {},
+          "actions": {}
         }
       }
     },
-
-    "entityAliases": {
-      "inverter": {
-        "id": "inverter",
-        "alias": "inverter",
-        "filter": {
-          "type": "singleEntity",
-          "resolveMultiple": false,
-          "singleEntity": {
-            "entityType": "DEVICE",
-            "id": "2241cec0-4160-11f1-b75f-3300bce53b8d"
-          }
-        }
-      }
-    },
-
+    "entityAliases": {},
     "timewindow": {
-      "realtime": {"timewindowMs": 3600000},
-      "aggregation": {"type": "NONE"}
+      "realtime": {
+        "timewindowMs": 3600000
+      },
+      "aggregation": {
+        "type": "NONE"
+      }
     },
-
     "settings": {
       "stateControllerId": "entity",
       "showTitle": true,
