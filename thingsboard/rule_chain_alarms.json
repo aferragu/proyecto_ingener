@@ -1,0 +1,200 @@
+{
+  "ruleChain": {
+    "name": "PCS Inverter Alarms",
+    "type": "CORE",
+    "firstRuleNodeId": null,
+    "root": false,
+    "debugMode": false,
+    "configuration": null
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "id": "node_input",
+        "type": "org.thingsboard.rule.engine.filter.TbMsgTypeFilterNode",
+        "name": "Only telemetry",
+        "debugMode": false,
+        "configuration": {
+          "messageTypes": ["POST_TELEMETRY_REQUEST"]
+        },
+        "additionalInfo": { "layoutX": 100, "layoutY": 200 }
+      },
+      {
+        "id": "node_fault_create",
+        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
+        "name": "Create FAULT alarm",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_FAULT",
+          "alarmSeverityType": "CRITICAL",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'fault': msg.fault, 'running': msg.running };",
+          "dynamicSeverity": false,
+          "propagate": false,
+          "propagateRelationTypes": []
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 100 }
+      },
+      {
+        "id": "node_fault_clear",
+        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
+        "name": "Clear FAULT alarm",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_FAULT",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'fault': msg.fault };"
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 200 }
+      },
+      {
+        "id": "node_alarm_create",
+        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
+        "name": "Create ALARM warning",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_ALARM",
+          "alarmSeverityType": "WARNING",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'alarm': msg.alarm };",
+          "dynamicSeverity": false,
+          "propagate": false,
+          "propagateRelationTypes": []
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 300 }
+      },
+      {
+        "id": "node_alarm_clear",
+        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
+        "name": "Clear ALARM warning",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_ALARM",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'alarm': msg.alarm };"
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 400 }
+      },
+      {
+        "id": "node_derating_create",
+        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
+        "name": "Create DERATING warning",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_DERATING",
+          "alarmSeverityType": "WARNING",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'derating': msg.derating, 'p_inv_kw': msg.p_inv_kw };",
+          "dynamicSeverity": false,
+          "propagate": false,
+          "propagateRelationTypes": []
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 500 }
+      },
+      {
+        "id": "node_derating_clear",
+        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
+        "name": "Clear DERATING warning",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_DERATING",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'derating': msg.derating };"
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 600 }
+      },
+      {
+        "id": "node_offline_create",
+        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
+        "name": "Create OFFLINE alarm",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_OFFLINE",
+          "alarmSeverityType": "MAJOR",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'running': msg.running };",
+          "dynamicSeverity": false,
+          "propagate": false,
+          "propagateRelationTypes": []
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 700 }
+      },
+      {
+        "id": "node_offline_clear",
+        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
+        "name": "Clear OFFLINE alarm",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "INVERTER_OFFLINE",
+          "scriptLang": "TBEL",
+          "alarmDetailsBuildTbel": "return { 'running': msg.running };"
+        },
+        "additionalInfo": { "layoutX": 400, "layoutY": 800 }
+      },
+      {
+        "id": "node_script_fault",
+        "type": "org.thingsboard.rule.engine.filter.TbScriptFilterNode",
+        "name": "fault == 1?",
+        "debugMode": false,
+        "configuration": {
+          "scriptLang": "TBEL",
+          "scriptTbel": "return msg.fault == 1;"
+        },
+        "additionalInfo": { "layoutX": 250, "layoutY": 150 }
+      },
+      {
+        "id": "node_script_alarm",
+        "type": "org.thingsboard.rule.engine.filter.TbScriptFilterNode",
+        "name": "alarm == 1?",
+        "debugMode": false,
+        "configuration": {
+          "scriptLang": "TBEL",
+          "scriptTbel": "return msg.alarm == 1;"
+        },
+        "additionalInfo": { "layoutX": 250, "layoutY": 350 }
+      },
+      {
+        "id": "node_script_derating",
+        "type": "org.thingsboard.rule.engine.filter.TbScriptFilterNode",
+        "name": "derating == 1?",
+        "debugMode": false,
+        "configuration": {
+          "scriptLang": "TBEL",
+          "scriptTbel": "return msg.derating == 1;"
+        },
+        "additionalInfo": { "layoutX": 250, "layoutY": 550 }
+      },
+      {
+        "id": "node_script_offline",
+        "type": "org.thingsboard.rule.engine.filter.TbScriptFilterNode",
+        "name": "running == 0?",
+        "debugMode": false,
+        "configuration": {
+          "scriptLang": "TBEL",
+          "scriptTbel": "return msg.running == 0;"
+        },
+        "additionalInfo": { "layoutX": 250, "layoutY": 750 }
+      }
+    ],
+    "connections": [
+      { "fromIndex": 0, "toIndex": 9,  "type": "True" },
+      { "fromIndex": 0, "toIndex": 10, "type": "True" },
+      { "fromIndex": 0, "toIndex": 11, "type": "True" },
+      { "fromIndex": 0, "toIndex": 12, "type": "True" },
+
+      { "fromIndex": 9,  "toIndex": 1, "type": "True" },
+      { "fromIndex": 9,  "toIndex": 2, "type": "False" },
+
+      { "fromIndex": 10, "toIndex": 3, "type": "True" },
+      { "fromIndex": 10, "toIndex": 4, "type": "False" },
+
+      { "fromIndex": 11, "toIndex": 5, "type": "True" },
+      { "fromIndex": 11, "toIndex": 6, "type": "False" },
+
+      { "fromIndex": 12, "toIndex": 7, "type": "True" },
+      { "fromIndex": 12, "toIndex": 8, "type": "False" }
+    ],
+    "ruleChainConnections": null
+  }
+}
