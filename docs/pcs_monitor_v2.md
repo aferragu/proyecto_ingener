@@ -162,6 +162,42 @@ El firmware arranca y funciona parcialmente sin inversor ni BMS conectados:
 
 ## TODO
 
-- Implementar protocolo CAN del BMS en `pollCAN()` cuando se identifique el modelo
-- Implementar lógica de control EMS (peak shaving, batería primero, scheduler horario) cuando el equipo valide la estrategia
-- Agregar shared attributes de ThingsBoard para configurar parámetros de control remotamente (SOC_MIN, SOC_TARGET, GRID_LIMIT, MAX_DISCHARGE) sin reflashear
+### Hardware
+- Identificar modelo y protocolo CAN del BMS para implementar `pollCAN()`
+- Confirmar dirección Modbus del inversor via DIP switch (`MODBUS_DEVICE_ID`)
+- Confirmar dirección CAN del BMS (`BMS_CAN_ADDR`)
+- Verificar que el firmware del inversor soporta protocolo RTU V3.0 (reg 19 ≥ 30) para registros 200–213
+- Agregar soporte pantalla LCD ST7789 1.14" (ideaspark ESP32) — pines compatibles con esquema actual (MOSI=23, SCLK=18, CS=15, BLK=32)
+
+### Firmware
+- Implementar protocolo CAN del BMS en `pollCAN()` — estructura lista, falta decodificación de IDs
+- Implementar lógica de control EMS:
+  - Batería primero: `setPower = min(load_p_kw, MAX_DISCHARGE)` cuando `SOC > SOC_MIN`
+  - Peak shaving: limitar `grid_p_kw` a `GRID_LIMIT` via rampa en `setPower`
+  - Scheduler horario: franjas de carga/descarga configurables (Time of Use)
+- Agregar shared attributes de ThingsBoard para configurar parámetros remotamente sin reflashear: `SOC_MIN`, `SOC_TARGET`, `GRID_LIMIT`, `MAX_DISCHARGE`, `CHARGE_POWER`
+- Migrar a arquitectura dual-core FreeRTOS para producción:
+  - Core 0: WiFi, MQTT, RPC, publicación telemetría
+  - Core 1: Modbus polling, CAN polling, lógica EMS
+  - Mutex para acceso compartido al documento de telemetría
+- Migrar configuración (SSID, token, parámetros EMS) a NVS (Non-Volatile Storage) para cambiar sin reflashear
+- Refactorizar a estructura modular para producción (ver sección siguiente)
+
+### ThingsBoard
+- Conectar rule chain de alarmas al Root Rule Chain
+- Agregar widgets RPC al dashboard (Action buttons para powerOn/shutdown, slider para setPower)
+- Agregar widget de alarmas activas al dashboard
+
+### Arquitectura para producción
+Refactorizar el `.ino` monolítico a estructura modular:
+```
+pcs_monitor/
+├── pcs_monitor.ino        # solo setup() y loop()
+├── config.h               # todos los #define configurables
+├── modbus.h / modbus.cpp  # readRegisters, writeRegister, CRC16
+├── inverter.h / inverter.cpp  # inverterInit, verifyAndReinit, pollModbus
+├── bms.h / bms.cpp        # initCAN, pollCAN, protocolo BMS
+├── mqtt.h / mqtt.cpp      # connectMQTT, publishTelemetry, onRpcMessage
+└── ems.h / ems.cpp        # lógica de control (setPower, peak shaving, scheduler)
+```
+
