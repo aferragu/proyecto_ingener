@@ -64,14 +64,6 @@
 #define LED_ON()         digitalWrite(LED_PIN, LOW)
 #define LED_OFF()        digitalWrite(LED_PIN, HIGH)
 
-// Actualiza el LED según estado de WiFi y MQTT
-void updateLed() {
-    if (WiFi.status() == WL_CONNECTED && mqttClient.connected())
-        LED_ON();
-    else
-        LED_OFF();
-}
-
 // ---------------------------------------------------------------------------
 // REGISTROS MODBUS — SP6030 protocolo V3.0
 // ---------------------------------------------------------------------------
@@ -131,6 +123,14 @@ unsigned long lastVerifyMs  = 0;
 // Último snapshot de telemetría (se actualiza con cada poll)
 // 2048 bytes: ~50 keys float + strings CAN + margen
 StaticJsonDocument<2048> telemetry;
+
+// Actualiza el LED según estado de WiFi y MQTT
+void updateLed() {
+    if (WiFi.status() == WL_CONNECTED && mqttClient.connected())
+        LED_ON();
+    else
+        LED_OFF();
+}
 
 // ---------------------------------------------------------------------------
 // CRC-16 Modbus
