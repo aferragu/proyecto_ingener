@@ -4,17 +4,16 @@
     "description": "SinoSoar SP6030 via ESP32 Modbus RTU V3.0",
     "widgets": {
       "w_running": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 0,
         "config": {
-          "showTitle": true,
-          "title": "Estado",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -30,11 +29,10 @@
                   "color": "#2196f3",
                   "settings": {
                     "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe2 RUNNING' : '\ud83d\udd34 STOPPED';"
+                    "postProcessingFunction": "return value == 1 ? 'STOPPED' : 'RUNNING';"
                   }
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -42,22 +40,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Estado",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "power_settings_new",
+            "iconColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_fault": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 2,
         "config": {
-          "showTitle": true,
-          "title": "Fault",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -73,11 +118,10 @@
                   "color": "#2196f3",
                   "settings": {
                     "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return value == 1 ? '\ud83d\udd34 FAULT' : '\u2705 OK';"
+                    "postProcessingFunction": "return value == 1 ? 'FAULT' : 'OK';"
                   }
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -85,22 +129,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Fault",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "warning",
+            "iconColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_alarm": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 4,
         "config": {
-          "showTitle": true,
-          "title": "Alarm",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -116,11 +207,10 @@
                   "color": "#2196f3",
                   "settings": {
                     "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe1 ALARM' : '\u2705 OK';"
+                    "postProcessingFunction": "return value == 1 ? 'ALARM' : 'OK';"
                   }
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -128,22 +218,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Alarm",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "notifications",
+            "iconColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_grid_tied": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 6,
         "config": {
-          "showTitle": true,
-          "title": "Red",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -159,11 +296,10 @@
                   "color": "#2196f3",
                   "settings": {
                     "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe2 GRID-TIED' : '\ud83d\udfe1 OFF-GRID';"
+                    "postProcessingFunction": "return value == 1 ? 'OFF-GRID' : 'GRID-TIED';"
                   }
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -171,22 +307,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Red",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "electrical_services",
+            "iconColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_derating": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 8,
         "config": {
-          "showTitle": true,
-          "title": "Derating",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -202,11 +385,10 @@
                   "color": "#2196f3",
                   "settings": {
                     "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return value == 1 ? '\ud83d\udfe1 DERATING' : '\u2705 OK';"
+                    "postProcessingFunction": "return value == 1 ? 'DERATING' : 'OK';"
                   }
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -214,22 +396,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Derating",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "trending_down",
+            "iconColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "function",
+              "color": "#4CAF50",
+              "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_freq": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.label_value_card",
         "type": "latest",
         "sizeX": 2,
         "sizeY": 2,
         "row": 0,
         "col": 10,
         "config": {
-          "showTitle": true,
-          "title": "Frecuencia",
+          "showTitle": false,
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
@@ -241,15 +470,11 @@
                 {
                   "name": "freq_hz",
                   "type": "timeseries",
-                  "label": "Hz",
+                  "label": "Frecuencia",
                   "color": "#2196f3",
-                  "settings": {
-                    "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' Hz';"
-                  }
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -257,24 +482,69 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "autoScale": true,
+            "showLabel": true,
+            "label": "Frecuencia",
+            "labelFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "24px"
+            },
+            "labelColor": {
+              "type": "constant",
+              "color": "rgba(0,0,0,0.87)"
+            },
+            "showIcon": true,
+            "iconSize": 24,
+            "iconSizeUnit": "px",
+            "icon": "waves",
+            "iconColor": {
+              "type": "constant",
+              "color": "#2196F3"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "size": 16,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "24px"
+            },
+            "valueColor": {
+              "type": "constant",
+              "color": "rgba(0,0,0,0.87)"
+            },
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "padding": "12px"
+          },
+          "actions": {},
+          "enableDataExport": false
         }
       },
       "w_p_inv": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.digital_gauges.digital_vertical_bar",
         "type": "latest",
         "sizeX": 3,
-        "sizeY": 2,
+        "sizeY": 4,
         "row": 2,
         "col": 0,
         "config": {
           "showTitle": true,
-          "title": "Potencia Inversor",
+          "title": "Inversor (kW)",
           "dropShadow": true,
           "enableFullscreen": true,
-          "backgroundColor": "rgba(0,0,0,0)",
-          "color": "rgba(0,0,0,0.87)",
+          "backgroundColor": "#000000",
+          "color": "rgba(255,254,254,0.87)",
           "padding": "0px",
           "datasources": [
             {
@@ -284,15 +554,11 @@
                 {
                   "name": "p_inv_kw",
                   "type": "timeseries",
-                  "label": "kW",
-                  "color": "#2196f3",
-                  "settings": {
-                    "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
-                  }
+                  "label": "Inversor (kW)",
+                  "color": "#2196F3",
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -300,24 +566,83 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "minValue": -60,
+            "maxValue": 60,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "gaugeType": "verticalBar",
+            "gaugeColor": "#171a1c",
+            "neonGlowBrightness": 20,
+            "showUnitTitle": true,
+            "showTitle": false,
+            "dashThickness": 1.2,
+            "animation": true,
+            "animationDuration": 500,
+            "animationRule": "linear",
+            "levelColors": [
+              "#2196F3",
+              "#F44336"
+            ],
+            "barColor": {
+              "type": "gradient",
+              "color": "#2196F3",
+              "gradient": {
+                "advancedMode": false,
+                "gradient": [
+                  "#2196F3",
+                  "#F44336"
+                ],
+                "minValue": -60,
+                "maxValue": 60
+              }
+            },
+            "useFixedLevelColor": false,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Segment7Standard",
+              "size": 14,
+              "style": "normal",
+              "weight": "500"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 8,
+              "style": "normal",
+              "weight": "normal",
+              "color": "#cccccc"
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_grid_p": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.digital_gauges.digital_vertical_bar",
         "type": "latest",
         "sizeX": 3,
-        "sizeY": 2,
+        "sizeY": 4,
         "row": 2,
         "col": 3,
         "config": {
           "showTitle": true,
-          "title": "Potencia Red",
+          "title": "Red (kW)",
           "dropShadow": true,
           "enableFullscreen": true,
-          "backgroundColor": "rgba(0,0,0,0)",
-          "color": "rgba(0,0,0,0.87)",
+          "backgroundColor": "#000000",
+          "color": "rgba(255,254,254,0.87)",
           "padding": "0px",
           "datasources": [
             {
@@ -327,15 +652,11 @@
                 {
                   "name": "grid_p_kw",
                   "type": "timeseries",
-                  "label": "kW",
-                  "color": "#2196f3",
-                  "settings": {
-                    "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
-                  }
+                  "label": "Red (kW)",
+                  "color": "#4CAF50",
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -343,24 +664,83 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "minValue": -60,
+            "maxValue": 60,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "gaugeType": "verticalBar",
+            "gaugeColor": "#171a1c",
+            "neonGlowBrightness": 20,
+            "showUnitTitle": true,
+            "showTitle": false,
+            "dashThickness": 1.2,
+            "animation": true,
+            "animationDuration": 500,
+            "animationRule": "linear",
+            "levelColors": [
+              "#4CAF50",
+              "#F44336"
+            ],
+            "barColor": {
+              "type": "gradient",
+              "color": "#4CAF50",
+              "gradient": {
+                "advancedMode": false,
+                "gradient": [
+                  "#4CAF50",
+                  "#F44336"
+                ],
+                "minValue": -60,
+                "maxValue": 60
+              }
+            },
+            "useFixedLevelColor": false,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Segment7Standard",
+              "size": 14,
+              "style": "normal",
+              "weight": "500"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 8,
+              "style": "normal",
+              "weight": "normal",
+              "color": "#cccccc"
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_load_p": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.digital_gauges.digital_vertical_bar",
         "type": "latest",
         "sizeX": 3,
-        "sizeY": 2,
+        "sizeY": 4,
         "row": 2,
         "col": 6,
         "config": {
           "showTitle": true,
-          "title": "Potencia Carga",
+          "title": "Carga (kW)",
           "dropShadow": true,
           "enableFullscreen": true,
-          "backgroundColor": "rgba(0,0,0,0)",
-          "color": "rgba(0,0,0,0.87)",
+          "backgroundColor": "#000000",
+          "color": "rgba(255,254,254,0.87)",
           "padding": "0px",
           "datasources": [
             {
@@ -370,15 +750,11 @@
                 {
                   "name": "load_p_kw",
                   "type": "timeseries",
-                  "label": "kW",
-                  "color": "#2196f3",
-                  "settings": {
-                    "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
-                  }
+                  "label": "Carga (kW)",
+                  "color": "#FF9800",
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -386,24 +762,83 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "minValue": 0,
+            "maxValue": 60,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "gaugeType": "verticalBar",
+            "gaugeColor": "#171a1c",
+            "neonGlowBrightness": 20,
+            "showUnitTitle": true,
+            "showTitle": false,
+            "dashThickness": 1.2,
+            "animation": true,
+            "animationDuration": 500,
+            "animationRule": "linear",
+            "levelColors": [
+              "#FF9800",
+              "#F44336"
+            ],
+            "barColor": {
+              "type": "gradient",
+              "color": "#FF9800",
+              "gradient": {
+                "advancedMode": false,
+                "gradient": [
+                  "#FF9800",
+                  "#F44336"
+                ],
+                "minValue": 0,
+                "maxValue": 60
+              }
+            },
+            "useFixedLevelColor": false,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Segment7Standard",
+              "size": 14,
+              "style": "normal",
+              "weight": "500"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 8,
+              "style": "normal",
+              "weight": "normal",
+              "color": "#cccccc"
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_dc_p": {
-        "typeFullFqn": "system.cards.simple_card",
+        "typeFullFqn": "system.digital_gauges.digital_vertical_bar",
         "type": "latest",
         "sizeX": 3,
-        "sizeY": 2,
+        "sizeY": 4,
         "row": 2,
         "col": 9,
         "config": {
           "showTitle": true,
-          "title": "Potencia DC",
+          "title": "DC (kW)",
           "dropShadow": true,
           "enableFullscreen": true,
-          "backgroundColor": "rgba(0,0,0,0)",
-          "color": "rgba(0,0,0,0.87)",
+          "backgroundColor": "#000000",
+          "color": "rgba(255,254,254,0.87)",
           "padding": "0px",
           "datasources": [
             {
@@ -413,15 +848,11 @@
                 {
                   "name": "dc_power_kw",
                   "type": "timeseries",
-                  "label": "kW",
-                  "color": "#2196f3",
-                  "settings": {
-                    "usePostProcessingFunction": true,
-                    "postProcessingFunction": "return parseFloat(value).toFixed(2) + ' kW';"
-                  }
+                  "label": "DC (kW)",
+                  "color": "#9C27B0",
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [],
               "alarmFilterConfig": {
                 "statusList": [
                   "ACTIVE"
@@ -429,8 +860,67 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "minValue": -60,
+            "maxValue": 60,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "gaugeType": "verticalBar",
+            "gaugeColor": "#171a1c",
+            "neonGlowBrightness": 20,
+            "showUnitTitle": true,
+            "showTitle": false,
+            "dashThickness": 1.2,
+            "animation": true,
+            "animationDuration": 500,
+            "animationRule": "linear",
+            "levelColors": [
+              "#9C27B0",
+              "#F44336"
+            ],
+            "barColor": {
+              "type": "gradient",
+              "color": "#9C27B0",
+              "gradient": {
+                "advancedMode": false,
+                "gradient": [
+                  "#9C27B0",
+                  "#F44336"
+                ],
+                "minValue": -60,
+                "maxValue": 60
+              }
+            },
+            "useFixedLevelColor": false,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Segment7Standard",
+              "size": 14,
+              "style": "normal",
+              "weight": "500"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 8,
+              "style": "normal",
+              "weight": "normal",
+              "color": "#cccccc"
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_p_chart": {
@@ -717,20 +1207,24 @@
         }
       },
       "w_ac_voltages": {
-        "typeFullFqn": "system.cards.attributes_card",
-        "type": "latest",
-        "sizeX": 3,
+        "typeFullFqn": "system.bar_chart_with_labels",
+        "type": "timeseries",
+        "sizeX": 6,
         "sizeY": 4,
         "row": 9,
         "col": 0,
         "config": {
           "showTitle": true,
-          "title": "Tensiones AC",
+          "title": "Tensiones de fase AC (V)",
           "dropShadow": true,
           "enableFullscreen": true,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
+          "units": "V",
+          "decimals": 1,
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
           "datasources": [
             {
               "type": "device",
@@ -739,43 +1233,43 @@
                 {
                   "name": "v_a",
                   "type": "timeseries",
-                  "label": "Va (V)",
-                  "color": "#2196f3",
+                  "label": "Va",
+                  "color": "#2196F3",
                   "settings": {}
                 },
                 {
                   "name": "v_b",
                   "type": "timeseries",
-                  "label": "Vb (V)",
-                  "color": "#2196f3",
+                  "label": "Vb",
+                  "color": "#4CAF50",
                   "settings": {}
                 },
                 {
                   "name": "v_c",
                   "type": "timeseries",
-                  "label": "Vc (V)",
-                  "color": "#2196f3",
+                  "label": "Vc",
+                  "color": "#FF9800",
                   "settings": {}
                 },
                 {
                   "name": "v_ab",
                   "type": "timeseries",
-                  "label": "Vab (V)",
-                  "color": "#2196f3",
+                  "label": "Vab",
+                  "color": "#9C27B0",
                   "settings": {}
                 },
                 {
                   "name": "v_bc",
                   "type": "timeseries",
-                  "label": "Vbc (V)",
-                  "color": "#2196f3",
+                  "label": "Vbc",
+                  "color": "#F44336",
                   "settings": {}
                 },
                 {
                   "name": "v_ca",
                   "type": "timeseries",
-                  "label": "Vca (V)",
-                  "color": "#2196f3",
+                  "label": "Vca",
+                  "color": "#00BCD4",
                   "settings": {}
                 }
               ],
@@ -787,25 +1281,93 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "showBarLabel": true,
+            "barLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "12px"
+            },
+            "barLabelColor": "rgba(0,0,0,0.54)",
+            "showBarValue": true,
+            "barValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "12px"
+            },
+            "barValueColor": "rgba(0,0,0,0.76)",
+            "showLegend": true,
+            "legendPosition": "top",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipBackgroundColor": "rgba(255,255,255,0.76)",
+            "tooltipBackgroundBlur": 4,
+            "tooltipShowDate": true,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "dataZoom": false,
+            "showBarBorder": false,
+            "barBorderWidth": 2,
+            "barBorderRadius": 0,
+            "thresholds": [],
+            "animation": {
+              "animation": true,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut"
+            },
+            "padding": "12px",
+            "yAxis": {
+              "show": true,
+              "position": "left",
+              "showTickLabels": true,
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0,0,0,0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "position": "bottom",
+              "showTickLabels": true,
+              "showLine": true,
+              "lineColor": "rgba(0,0,0,0.54)"
+            },
+            "grid": {
+              "show": false
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_ac_currents": {
-        "typeFullFqn": "system.cards.attributes_card",
-        "type": "latest",
+        "typeFullFqn": "system.bar_chart_with_labels",
+        "type": "timeseries",
         "sizeX": 3,
         "sizeY": 4,
         "row": 9,
-        "col": 3,
+        "col": 6,
         "config": {
           "showTitle": true,
-          "title": "Corrientes AC",
+          "title": "Corrientes de fase AC (A)",
           "dropShadow": true,
           "enableFullscreen": true,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
+          "units": "A",
+          "decimals": 1,
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
           "datasources": [
             {
               "type": "device",
@@ -814,22 +1376,22 @@
                 {
                   "name": "i_a",
                   "type": "timeseries",
-                  "label": "Ia (A)",
-                  "color": "#2196f3",
+                  "label": "Ia",
+                  "color": "#2196F3",
                   "settings": {}
                 },
                 {
                   "name": "i_b",
                   "type": "timeseries",
-                  "label": "Ib (A)",
-                  "color": "#2196f3",
+                  "label": "Ib",
+                  "color": "#4CAF50",
                   "settings": {}
                 },
                 {
                   "name": "i_c",
                   "type": "timeseries",
-                  "label": "Ic (A)",
-                  "color": "#2196f3",
+                  "label": "Ic",
+                  "color": "#FF9800",
                   "settings": {}
                 }
               ],
@@ -841,25 +1403,93 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "showBarLabel": true,
+            "barLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "12px"
+            },
+            "barLabelColor": "rgba(0,0,0,0.54)",
+            "showBarValue": true,
+            "barValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "12px"
+            },
+            "barValueColor": "rgba(0,0,0,0.76)",
+            "showLegend": true,
+            "legendPosition": "top",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipBackgroundColor": "rgba(255,255,255,0.76)",
+            "tooltipBackgroundBlur": 4,
+            "tooltipShowDate": true,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "dataZoom": false,
+            "showBarBorder": false,
+            "barBorderWidth": 2,
+            "barBorderRadius": 0,
+            "thresholds": [],
+            "animation": {
+              "animation": true,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut"
+            },
+            "padding": "12px",
+            "yAxis": {
+              "show": true,
+              "position": "left",
+              "showTickLabels": true,
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0,0,0,0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "position": "bottom",
+              "showTickLabels": true,
+              "showLine": true,
+              "lineColor": "rgba(0,0,0,0.54)"
+            },
+            "grid": {
+              "show": false
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_grid_detail": {
-        "typeFullFqn": "system.cards.attributes_card",
-        "type": "latest",
+        "typeFullFqn": "system.bar_chart_with_labels",
+        "type": "timeseries",
         "sizeX": 3,
         "sizeY": 4,
         "row": 9,
-        "col": 6,
+        "col": 9,
         "config": {
           "showTitle": true,
-          "title": "Red",
+          "title": "Tensiones red (V)",
           "dropShadow": true,
           "enableFullscreen": true,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
+          "units": "V",
+          "decimals": 1,
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
           "datasources": [
             {
               "type": "device",
@@ -868,36 +1498,22 @@
                 {
                   "name": "grid_v_a",
                   "type": "timeseries",
-                  "label": "Grid Va (V)",
-                  "color": "#2196f3",
+                  "label": "Grid Va",
+                  "color": "#2196F3",
                   "settings": {}
                 },
                 {
                   "name": "grid_v_b",
                   "type": "timeseries",
-                  "label": "Grid Vb (V)",
-                  "color": "#2196f3",
+                  "label": "Grid Vb",
+                  "color": "#4CAF50",
                   "settings": {}
                 },
                 {
                   "name": "grid_v_c",
                   "type": "timeseries",
-                  "label": "Grid Vc (V)",
-                  "color": "#2196f3",
-                  "settings": {}
-                },
-                {
-                  "name": "grid_freq_hz",
-                  "type": "timeseries",
-                  "label": "Freq (Hz)",
-                  "color": "#2196f3",
-                  "settings": {}
-                },
-                {
-                  "name": "grid_p_kw",
-                  "type": "timeseries",
-                  "label": "P (kW)",
-                  "color": "#2196f3",
+                  "label": "Grid Vc",
+                  "color": "#FF9800",
                   "settings": {}
                 }
               ],
@@ -909,8 +1525,72 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "showBarLabel": true,
+            "barLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "12px"
+            },
+            "barLabelColor": "rgba(0,0,0,0.54)",
+            "showBarValue": true,
+            "barValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "12px"
+            },
+            "barValueColor": "rgba(0,0,0,0.76)",
+            "showLegend": true,
+            "legendPosition": "top",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipBackgroundColor": "rgba(255,255,255,0.76)",
+            "tooltipBackgroundBlur": 4,
+            "tooltipShowDate": true,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "dataZoom": false,
+            "showBarBorder": false,
+            "barBorderWidth": 2,
+            "barBorderRadius": 0,
+            "thresholds": [],
+            "animation": {
+              "animation": true,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut"
+            },
+            "padding": "12px",
+            "yAxis": {
+              "show": true,
+              "position": "left",
+              "showTickLabels": true,
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0,0,0,0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "position": "bottom",
+              "showTickLabels": true,
+              "showLine": true,
+              "lineColor": "rgba(0,0,0,0.54)"
+            },
+            "grid": {
+              "show": false
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_pf": {
@@ -975,7 +1655,7 @@
         }
       },
       "w_load_chart": {
-        "typeFullFqn": "system.time_series_chart",
+        "typeFullFqn": "system.bar_chart_with_labels",
         "type": "timeseries",
         "sizeX": 6,
         "sizeY": 4,
@@ -986,11 +1666,13 @@
           "title": "Potencia por fase \u2014 carga (kW)",
           "dropShadow": true,
           "enableFullscreen": true,
-          "useDashboardTimewindow": true,
-          "enableDataExport": true,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
+          "units": "kW",
+          "decimals": 2,
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
           "datasources": [
             {
               "type": "device",
@@ -999,104 +1681,23 @@
                 {
                   "name": "load_p_a_kw",
                   "type": "timeseries",
-                  "label": "Pa carga",
+                  "label": "Pa",
                   "color": "#F44336",
-                  "settings": {
-                    "yAxisId": "default",
-                    "showInLegend": true,
-                    "dataHiddenByDefault": false,
-                    "type": "line",
-                    "lineSettings": {
-                      "showLine": true,
-                      "step": false,
-                      "stepType": "start",
-                      "smooth": false,
-                      "lineType": "solid",
-                      "lineWidth": 2,
-                      "showPoints": false,
-                      "showPointLabel": false,
-                      "pointShape": "emptyCircle",
-                      "pointSize": 4,
-                      "fillAreaSettings": {
-                        "type": "none",
-                        "opacity": 0.4,
-                        "gradient": {
-                          "start": 100,
-                          "end": 0
-                        }
-                      }
-                    }
-                  },
-                  "units": "kW",
-                  "decimals": 2
+                  "settings": {}
                 },
                 {
                   "name": "load_p_b_kw",
                   "type": "timeseries",
-                  "label": "Pb carga",
+                  "label": "Pb",
                   "color": "#4CAF50",
-                  "settings": {
-                    "yAxisId": "default",
-                    "showInLegend": true,
-                    "dataHiddenByDefault": false,
-                    "type": "line",
-                    "lineSettings": {
-                      "showLine": true,
-                      "step": false,
-                      "stepType": "start",
-                      "smooth": false,
-                      "lineType": "solid",
-                      "lineWidth": 2,
-                      "showPoints": false,
-                      "showPointLabel": false,
-                      "pointShape": "emptyCircle",
-                      "pointSize": 4,
-                      "fillAreaSettings": {
-                        "type": "none",
-                        "opacity": 0.4,
-                        "gradient": {
-                          "start": 100,
-                          "end": 0
-                        }
-                      }
-                    }
-                  },
-                  "units": "kW",
-                  "decimals": 2
+                  "settings": {}
                 },
                 {
                   "name": "load_p_c_kw",
                   "type": "timeseries",
-                  "label": "Pc carga",
+                  "label": "Pc",
                   "color": "#2196F3",
-                  "settings": {
-                    "yAxisId": "default",
-                    "showInLegend": true,
-                    "dataHiddenByDefault": false,
-                    "type": "line",
-                    "lineSettings": {
-                      "showLine": true,
-                      "step": false,
-                      "stepType": "start",
-                      "smooth": false,
-                      "lineType": "solid",
-                      "lineWidth": 2,
-                      "showPoints": false,
-                      "showPointLabel": false,
-                      "pointShape": "emptyCircle",
-                      "pointSize": 4,
-                      "fillAreaSettings": {
-                        "type": "none",
-                        "opacity": 0.4,
-                        "gradient": {
-                          "start": 100,
-                          "end": 0
-                        }
-                      }
-                    }
-                  },
-                  "units": "kW",
-                  "decimals": 2
+                  "settings": {}
                 }
               ],
               "latestDataKeys": [],
@@ -1108,51 +1709,33 @@
             }
           ],
           "settings": {
+            "showBarLabel": true,
+            "barLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "12px"
+            },
+            "barLabelColor": "rgba(0,0,0,0.54)",
+            "showBarValue": true,
+            "barValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "12px"
+            },
+            "barValueColor": "rgba(0,0,0,0.76)",
             "showLegend": true,
-            "legendConfig": {
-              "direction": "column",
-              "position": "top",
-              "sortDataKeys": false,
-              "showMin": false,
-              "showMax": false,
-              "showAvg": true,
-              "showTotal": false,
-              "showLatest": false
-            },
-            "thresholds": [],
-            "dataZoom": true,
-            "stack": false,
-            "yAxes": {
-              "default": {
-                "units": null,
-                "decimals": 0,
-                "show": true,
-                "label": "",
-                "position": "left",
-                "showTickLabels": true,
-                "showTicks": true,
-                "ticksColor": "rgba(0, 0, 0, 0.54)",
-                "showLine": true,
-                "lineColor": "rgba(0, 0, 0, 0.54)",
-                "showSplitLines": true,
-                "splitLinesColor": "rgba(0, 0, 0, 0.12)",
-                "id": "default",
-                "order": 0,
-                "min": {
-                  "type": "constant",
-                  "value": null
-                },
-                "max": {
-                  "type": "constant",
-                  "value": null
-                }
-              }
-            },
+            "legendPosition": "top",
             "showTooltip": true,
             "tooltipTrigger": "axis",
-            "tooltipShowDate": true,
-            "tooltipBackgroundColor": "rgba(255, 255, 255, 0.76)",
+            "tooltipBackgroundColor": "rgba(255,255,255,0.76)",
             "tooltipBackgroundBlur": 4,
+            "tooltipShowDate": true,
             "background": {
               "type": "color",
               "color": "#fff",
@@ -1160,30 +1743,58 @@
                 "enabled": false
               }
             },
-            "padding": "12px",
+            "dataZoom": false,
+            "showBarBorder": false,
+            "barBorderWidth": 2,
+            "barBorderRadius": 0,
+            "thresholds": [],
             "animation": {
               "animation": true,
-              "animationDuration": 500
+              "animationDuration": 500,
+              "animationEasing": "cubicOut"
+            },
+            "padding": "12px",
+            "yAxis": {
+              "show": true,
+              "position": "left",
+              "showTickLabels": true,
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0,0,0,0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "position": "bottom",
+              "showTickLabels": true,
+              "showLine": true,
+              "lineColor": "rgba(0,0,0,0.54)"
+            },
+            "grid": {
+              "show": false
             }
           },
-          "actions": {}
+          "actions": {},
+          "enableDataExport": true
         }
       },
       "w_load_detail": {
-        "typeFullFqn": "system.cards.attributes_card",
-        "type": "latest",
+        "typeFullFqn": "system.bar_chart_with_labels",
+        "type": "timeseries",
         "sizeX": 6,
         "sizeY": 4,
         "row": 13,
         "col": 6,
         "config": {
           "showTitle": true,
-          "title": "Mediciones carga (V3.0)",
+          "title": "Tensiones y corrientes carga",
           "dropShadow": true,
           "enableFullscreen": true,
           "backgroundColor": "rgba(0,0,0,0)",
           "color": "rgba(0,0,0,0.87)",
           "padding": "0px",
+          "units": "",
+          "decimals": 1,
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
           "datasources": [
             {
               "type": "device",
@@ -1192,57 +1803,43 @@
                 {
                   "name": "load_v_a",
                   "type": "timeseries",
-                  "label": "Va (V)",
-                  "color": "#2196f3",
+                  "label": "Va",
+                  "color": "#2196F3",
                   "settings": {}
                 },
                 {
                   "name": "load_v_b",
                   "type": "timeseries",
-                  "label": "Vb (V)",
-                  "color": "#2196f3",
+                  "label": "Vb",
+                  "color": "#4CAF50",
                   "settings": {}
                 },
                 {
                   "name": "load_v_c",
                   "type": "timeseries",
-                  "label": "Vc (V)",
-                  "color": "#2196f3",
+                  "label": "Vc",
+                  "color": "#FF9800",
                   "settings": {}
                 },
                 {
                   "name": "load_i_a",
                   "type": "timeseries",
-                  "label": "Ia (A)",
-                  "color": "#2196f3",
+                  "label": "Ia",
+                  "color": "#F44336",
                   "settings": {}
                 },
                 {
                   "name": "load_i_b",
                   "type": "timeseries",
-                  "label": "Ib (A)",
-                  "color": "#2196f3",
+                  "label": "Ib",
+                  "color": "#9C27B0",
                   "settings": {}
                 },
                 {
                   "name": "load_i_c",
                   "type": "timeseries",
-                  "label": "Ic (A)",
-                  "color": "#2196f3",
-                  "settings": {}
-                },
-                {
-                  "name": "load_p_kw",
-                  "type": "timeseries",
-                  "label": "P total (kW)",
-                  "color": "#2196f3",
-                  "settings": {}
-                },
-                {
-                  "name": "load_s_kva",
-                  "type": "timeseries",
-                  "label": "S total (kVA)",
-                  "color": "#2196f3",
+                  "label": "Ic",
+                  "color": "#00BCD4",
                   "settings": {}
                 }
               ],
@@ -1254,8 +1851,72 @@
               }
             }
           ],
-          "settings": {},
-          "actions": {}
+          "settings": {
+            "showBarLabel": true,
+            "barLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "12px"
+            },
+            "barLabelColor": "rgba(0,0,0,0.54)",
+            "showBarValue": true,
+            "barValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "12px"
+            },
+            "barValueColor": "rgba(0,0,0,0.76)",
+            "showLegend": true,
+            "legendPosition": "top",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipBackgroundColor": "rgba(255,255,255,0.76)",
+            "tooltipBackgroundBlur": 4,
+            "tooltipShowDate": true,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "dataZoom": false,
+            "showBarBorder": false,
+            "barBorderWidth": 2,
+            "barBorderRadius": 0,
+            "thresholds": [],
+            "animation": {
+              "animation": true,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut"
+            },
+            "padding": "12px",
+            "yAxis": {
+              "show": true,
+              "position": "left",
+              "showTickLabels": true,
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0,0,0,0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "position": "bottom",
+              "showTickLabels": true,
+              "showLine": true,
+              "lineColor": "rgba(0,0,0,0.54)"
+            },
+            "grid": {
+              "show": false
+            }
+          },
+          "actions": {},
+          "enableDataExport": true
         }
       }
     },
