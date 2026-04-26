@@ -1,5 +1,6 @@
 #pragma once
 #include <ArduinoJson.h>
+#include <PubSubClient.h>
 
 void readFirmwareVersion(PubSubClient& mqtt);
 void inverterInit();

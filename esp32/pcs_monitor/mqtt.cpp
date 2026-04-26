@@ -52,7 +52,9 @@ void onRpcMessage(char* topic, byte* payload, unsigned int length) {
 
     } else {
         Serial.printf("[RPC] Método desconocido: %s\n", method);
-        response = "{\"result\":\"error\",\"message\":\"unknown method\"}";
+        mqttClient.publish(responseTopic.c_str(),
+            "{\"result\":\"error\",\"message\":\"unknown method\"}");
+        return;
     }
 
     if (!success)
@@ -62,9 +64,13 @@ void onRpcMessage(char* topic, byte* payload, unsigned int length) {
 }
 
 void connectMQTT() {
-    mqttClient.setServer(TB_HOST, TB_PORT);
-    mqttClient.setBufferSize(2048);
-    mqttClient.setCallback(onRpcMessage);
+    static bool initialized = false;
+    if (!initialized) {
+        mqttClient.setServer(TB_HOST, TB_PORT);
+        mqttClient.setBufferSize(2048);
+        mqttClient.setCallback(onRpcMessage);
+        initialized = true;
+    }
     String clientId = "ESP32_PCS_" + String((uint32_t)ESP.getEfuseMac(), HEX);
     while (!mqttClient.connected()) {
         Serial.print("[MQTT] Conectando...");
