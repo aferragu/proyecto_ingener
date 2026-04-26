@@ -1,5 +1,5 @@
 // =============================================================================
-// PCS Inverter + BMS Monitor — ESP32  (solo monitoreo, sin RPC)
+// PCS Inverter + BMS Monitor — ESP32
 // 
 // Modbus RTU RS-485 → inversor SinoSoar SP6030 (protocolo V3.0)
 // CAN bus (TWAI)    → BMS (stub, reemplazar con protocolo real)
@@ -18,6 +18,11 @@
 //   GPIO21 (TWAI TX) → D
 //   GPIO22 (TWAI RX) → R
 //   Rs → GND
+//
+// RPCs soportados (desde ThingsBoard):
+//   powerOn   → sin params
+//   shutdown  → sin params
+//   setPower  → params: {"value": 20.0}  (kW, -100..+100)
 // =============================================================================
 
 #include <WiFi.h>
@@ -93,6 +98,11 @@
 // Versión del firmware (reg 0–21)
 #define REG_VERSION_START            0
 #define REG_VERSION_COUNT           22   // 0..21
+
+// Registros de control — RPC
+#define REG_POWER_ON               650   // escribir 1 → arranque
+#define REG_SHUTDOWN               651   // escribir 1 → parada
+#define REG_SET_POWER              135   // int16 ×0.1 kW, rango -1000..+1000 (raw)
 
 // ---------------------------------------------------------------------------
 // VARIABLES GLOBALES
@@ -521,6 +531,54 @@ void pollCAN() {
 }
 
 // ---------------------------------------------------------------------------
+// RPC handler — recibe comandos desde ThingsBoard
+// Topic entrada:   v1/devices/me/rpc/request/{id}
+// Topic respuesta: v1/devices/me/rpc/response/{id}
+// ---------------------------------------------------------------------------
+void onRpcMessage(char* topic, byte* payload, unsigned int length) {
+    String topicStr(topic);
+    String requestId = topicStr.substring(topicStr.lastIndexOf('/') + 1);
+    String responseTopic = "v1/devices/me/rpc/response/" + requestId;
+
+    StaticJsonDocument<256> req;
+    deserializeJson(req, payload, length);
+    const char* method = req["method"];
+
+    bool success = false;
+    String response = "{\"result\":\"ok\"}";
+
+    Serial.printf("[RPC] Método: %s\n", method);
+
+    if (strcmp(method, "powerOn") == 0) {
+        success = writeRegister(REG_POWER_ON, 1);
+        Serial.printf("[RPC] powerOn: %s\n", success ? "OK" : "FAIL");
+
+    } else if (strcmp(method, "shutdown") == 0) {
+        success = writeRegister(REG_SHUTDOWN, 1);
+        Serial.printf("[RPC] shutdown: %s\n", success ? "OK" : "FAIL");
+
+    } else if (strcmp(method, "setPower") == 0) {
+        float kw = req["params"]["value"] | 0.0f;
+        kw = constrain(kw, -100.0f, 100.0f);
+        int16_t raw = (int16_t)(kw * 10.0f);   // precisión ×0.1 kW
+        success = writeRegister(REG_SET_POWER, raw);
+        Serial.printf("[RPC] setPower %.1f kW (raw=%d): %s\n", kw, raw, success ? "OK" : "FAIL");
+        if (success)
+            response = "{\"result\":\"ok\",\"value\":" + String(kw, 1) + "}";
+
+    } else {
+        Serial.printf("[RPC] Método desconocido: %s\n", method);
+        response = "{\"result\":\"error\",\"message\":\"unknown method\"}";
+    }
+
+    if (!success) {
+        response = "{\"result\":\"error\",\"message\":\"modbus write failed\"}";
+    }
+
+    mqttClient.publish(responseTopic.c_str(), response.c_str());
+}
+
+// ---------------------------------------------------------------------------
 // WiFi y MQTT
 // ---------------------------------------------------------------------------
 void connectWiFi() {
@@ -533,11 +591,14 @@ void connectWiFi() {
 void connectMQTT() {
     mqttClient.setServer(TB_HOST, TB_PORT);
     mqttClient.setBufferSize(2048);
+    mqttClient.setCallback(onRpcMessage);
     while (!mqttClient.connected()) {
         Serial.print("[MQTT] Conectando...");
-        if (mqttClient.connect("ESP32_PCS_MON", TB_ACCESS_TOKEN, nullptr))
+        if (mqttClient.connect("ESP32_PCS_MON", TB_ACCESS_TOKEN, nullptr)) {
             Serial.println(" OK");
-        else {
+            mqttClient.subscribe("v1/devices/me/rpc/request/+");
+            Serial.println("[MQTT] Suscrito a RPC requests");
+        } else {
             Serial.printf(" fallo rc=%d, reintentando en 5s\n", mqttClient.state());
             delay(5000);
         }
