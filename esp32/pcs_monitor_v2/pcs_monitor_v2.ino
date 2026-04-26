@@ -59,6 +59,19 @@
 #define PUBLISH_MS       10000   // publicar a ThingsBoard cada 10 segundos
 #define VERIFY_INIT_MS   60000   // verificar configuración del inversor cada 60 segundos
 
+// LED de status — GPIO2 (LED integrado NodeMCU, activo en LOW)
+#define LED_PIN          2
+#define LED_ON()         digitalWrite(LED_PIN, LOW)
+#define LED_OFF()        digitalWrite(LED_PIN, HIGH)
+
+// Actualiza el LED según estado de WiFi y MQTT
+void updateLed() {
+    if (WiFi.status() == WL_CONNECTED && mqttClient.connected())
+        LED_ON();
+    else
+        LED_OFF();
+}
+
 // ---------------------------------------------------------------------------
 // REGISTROS MODBUS — SP6030 protocolo V3.0
 // ---------------------------------------------------------------------------
@@ -374,6 +387,8 @@ void verifyAndReinit() {
 // Poll Modbus — leer todos los bloques del inversor
 // ---------------------------------------------------------------------------
 void pollModbus() {
+    telemetry.clear();   // limpiar snapshot anterior antes de cada ciclo
+
     // — Estado general (reg 32) —
     int16_t status[1];
     if (readRegisters(REG_STATUS, REG_STATUS_COUNT, status)) {
@@ -592,9 +607,13 @@ void connectMQTT() {
     mqttClient.setServer(TB_HOST, TB_PORT);
     mqttClient.setBufferSize(2048);
     mqttClient.setCallback(onRpcMessage);
+
+    // Client ID único basado en MAC para evitar conflictos
+    String clientId = "ESP32_PCS_" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
     while (!mqttClient.connected()) {
         Serial.print("[MQTT] Conectando...");
-        if (mqttClient.connect("ESP32_PCS_MON", TB_ACCESS_TOKEN, nullptr)) {
+        if (mqttClient.connect(clientId.c_str(), TB_ACCESS_TOKEN, nullptr)) {
             Serial.println(" OK");
             mqttClient.subscribe("v1/devices/me/rpc/request/+");
             Serial.println("[MQTT] Suscrito a RPC requests");
@@ -619,6 +638,10 @@ void publishTelemetry() {
 void setup() {
     Serial.begin(115200);
     Serial.println("\n[Boot] PCS Monitor v2 arrancando...");
+
+    // LED de status
+    pinMode(LED_PIN, OUTPUT);
+    LED_OFF();
 
     // RS-485
     pinMode(RS485_DE_RE_PIN, OUTPUT);
@@ -662,6 +685,8 @@ void loop() {
         Serial.println("[WiFi] Reconectando...");
         connectWiFi();
     }
+
+    updateLed();
 
     unsigned long now = millis();
 
