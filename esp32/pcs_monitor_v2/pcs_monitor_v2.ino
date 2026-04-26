@@ -46,6 +46,7 @@
 #define CAN_TX_PIN       GPIO_NUM_21
 #define CAN_RX_PIN       GPIO_NUM_22
 #define CAN_SPEED        TWAI_TIMING_CONFIG_250KBITS()  // ajustar según BMS
+#define BMS_CAN_ADDR     1   // dirección del BMS (1-15), embebida en el CAN ID
 
 // Intervalos de polling
 #define POLL_MODBUS_MS   5000    // inversor cada 5 segundos
@@ -105,7 +106,8 @@ unsigned long lastPublishMs = 0;
 unsigned long lastVerifyMs  = 0;
 
 // Último snapshot de telemetría (se actualiza con cada poll)
-StaticJsonDocument<768> telemetry;
+// 2048 bytes: ~50 keys float + strings CAN + margen
+StaticJsonDocument<2048> telemetry;
 
 // ---------------------------------------------------------------------------
 // CRC-16 Modbus
@@ -142,7 +144,15 @@ bool readRegisters(uint16_t startReg, uint16_t count, int16_t* out) {
     uint8_t rxBuf[256];
     uint32_t t = millis();
     uint8_t  idx = 0;
-    while ((millis() - t) < 300) {
+    // Esperar primer byte hasta 200ms, luego drear el resto con timeout corto
+    while ((millis() - t) < 200 && idx == 0) {
+        if (RS485_SERIAL.available())
+            rxBuf[idx++] = RS485_SERIAL.read();
+    }
+    if (idx == 0) return false;  // sin respuesta — salir rápido
+    // Leer el resto de la respuesta (50ms adicionales)
+    t = millis();
+    while ((millis() - t) < 50) {
         if (RS485_SERIAL.available() && idx < sizeof(rxBuf))
             rxBuf[idx++] = RS485_SERIAL.read();
     }
@@ -177,7 +187,13 @@ bool writeRegister(uint16_t reg, int16_t value) {
     uint8_t rxBuf[8];
     uint32_t t = millis();
     uint8_t  idx = 0;
-    while ((millis() - t) < 300) {
+    while ((millis() - t) < 200 && idx == 0) {
+        if (RS485_SERIAL.available())
+            rxBuf[idx++] = RS485_SERIAL.read();
+    }
+    if (idx == 0) return false;
+    t = millis();
+    while ((millis() - t) < 50) {
         if (RS485_SERIAL.available() && idx < 8)
             rxBuf[idx++] = RS485_SERIAL.read();
     }
@@ -261,7 +277,6 @@ void inverterInit() {
         { REG_DC_MAX_CHG_CURRENT,    1500, "Max DC charge current = 150A"    },
         { REG_3PHASE_CTRL_MODE,         1, "Control por fase individual"      },
         { REG_PV_SWITCH,                0, "PV OFF"                           },
-        { REG_ANTI_BACKFLOW,            1, "Anti-backflow ON"                 },
         { REG_LEAKAGE_DETECT,           0, "Leakage detection OFF"            },
         { REG_DCDC_SWITCH,              0, "DCDC OFF"                         },
     };
@@ -269,7 +284,17 @@ void inverterInit() {
     for (auto& cmd : cmds) {
         bool ok = writeRegister(cmd.reg, cmd.val);
         Serial.printf("[Init] reg %d (%s): %s\n", cmd.reg, cmd.name, ok ? "OK" : "FAIL");
-        delay(100);  // pausa entre writes, como hace el EMS del fabricante
+        delay(100);
+    }
+
+    // reg 873: anti-backflow — read-modify-write para preservar otros bits
+    {
+        int16_t cur873 = 0;
+        readRegisters(REG_ANTI_BACKFLOW, 1, &cur873);
+        int16_t newVal = cur873 | 0x01;  // forzar bit0 = 1
+        bool ok = writeRegister(REG_ANTI_BACKFLOW, newVal);
+        Serial.printf("[Init] reg 873 (Anti-backflow ON, val=0x%04X): %s\n", (uint16_t)newVal, ok ? "OK" : "FAIL");
+        delay(100);
     }
     Serial.println("[Init] Listo.");
 }
@@ -291,7 +316,6 @@ void verifyAndReinit() {
         { 764, 1500, "Max DC charge current"    },
         { 341,    1, "3-phase ctrl mode"        },
         { 652,    0, "PV switch"                },
-        { 873,    1, "Anti-backflow"            },
         { 795,    0, "Leakage detection"        },
         { 656,    0, "DCDC switch"              },
     };
@@ -311,6 +335,22 @@ void verifyAndReinit() {
             Serial.printf("[Verify] Corrección reg %d: %s\n", c.reg, ok ? "OK" : "FAIL");
             anyFixed = true;
             delay(100);
+        }
+    }
+
+    // reg 873: anti-backflow es bit0 — read-modify-write para no pisar otros bits
+    {
+        int16_t cur873;
+        if (readRegisters(873, 1, &cur873)) {
+            if ((cur873 & 0x01) == 0) {
+                int16_t newVal = cur873 | 0x01;
+                Serial.printf("[Verify] reg 873 (Anti-backflow): bit0=0, corrigiendo a 0x%04X\n", (uint16_t)newVal);
+                bool ok = writeRegister(873, newVal);
+                Serial.printf("[Verify] Corrección reg 873: %s\n", ok ? "OK" : "FAIL");
+                anyFixed = true;
+            }
+        } else {
+            Serial.println("[Verify] Error leyendo reg 873 (Anti-backflow)");
         }
     }
 
@@ -492,7 +532,7 @@ void connectWiFi() {
 
 void connectMQTT() {
     mqttClient.setServer(TB_HOST, TB_PORT);
-    mqttClient.setBufferSize(1024);
+    mqttClient.setBufferSize(2048);
     while (!mqttClient.connected()) {
         Serial.print("[MQTT] Conectando...");
         if (mqttClient.connect("ESP32_PCS_MON", TB_ACCESS_TOKEN, nullptr))
@@ -506,7 +546,7 @@ void connectMQTT() {
 
 void publishTelemetry() {
     if (!mqttClient.connected()) connectMQTT();
-    char payload[1024];
+    char payload[2048];
     serializeJson(telemetry, payload, sizeof(payload));
     bool ok = mqttClient.publish("v1/devices/me/telemetry", payload);
     Serial.printf("[MQTT] Publish %s (%d bytes)\n", ok ? "OK" : "FAIL", strlen(payload));
