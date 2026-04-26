@@ -5,7 +5,7 @@
 # =============================================================================
 
 TOKEN=${1:-"TU_ACCESS_TOKEN"}
-URL="https://demo.thingsboard.io/api/v1/$TOKEN/telemetry"
+URL="https://thingsboard.cloud/api/v1/$TOKEN/telemetry"
 
 ok() { echo "  HTTP $1"; }
 
@@ -71,7 +71,7 @@ send "Carga V3.0 — potencias" \
 # ---------------------------------------------------------------------------
 echo "[Atributos firmware]"
 curl -s -o /dev/null -w "  HTTP %{http_code}\n" \
-    -X POST "https://demo.thingsboard.io/api/v1/$TOKEN/attributes" \
+    -X POST "https://thingsboard.cloud/api/v1/$TOKEN/attributes" \
     -H "Content-Type: application/json" \
     -d '{
         "fw_model":        2,

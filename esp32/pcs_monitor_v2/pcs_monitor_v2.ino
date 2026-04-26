@@ -3,7 +3,7 @@
 // 
 // Modbus RTU RS-485 → inversor SinoSoar SP6030 (protocolo V3.0)
 // CAN bus (TWAI)    → BMS (stub, reemplazar con protocolo real)
-// WiFi MQTT         → ThingsBoard demo.thingsboard.io
+// WiFi MQTT         → ThingsBoard thingsboard.cloud
 //
 // Librerías (Arduino Library Manager):
 //   - PubSubClient  (Nick O'Leary)
@@ -30,7 +30,7 @@
 // ---------------------------------------------------------------------------
 #define WIFI_SSID        "TU_SSID"
 #define WIFI_PASSWORD    "TU_PASSWORD"
-#define TB_HOST          "demo.thingsboard.io"
+#define TB_HOST          "thingsboard.cloud"
 #define TB_PORT          1883
 #define TB_ACCESS_TOKEN  "TU_ACCESS_TOKEN"
 
