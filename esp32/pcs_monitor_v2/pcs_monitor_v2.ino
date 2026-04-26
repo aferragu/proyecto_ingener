@@ -33,11 +33,9 @@
 // ---------------------------------------------------------------------------
 // CONFIGURACIÓN
 // ---------------------------------------------------------------------------
-#define WIFI_SSID        "TU_SSID"
-#define WIFI_PASSWORD    "TU_PASSWORD"
+#include "credentials.h"  // copiar credentials.h.example y completar
 #define TB_HOST          "thingsboard.cloud"
 #define TB_PORT          1883
-#define TB_ACCESS_TOKEN  "TU_ACCESS_TOKEN"
 
 // RS-485 / Modbus
 #define RS485_BAUD       115200

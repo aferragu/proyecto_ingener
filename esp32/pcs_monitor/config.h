@@ -3,14 +3,12 @@
 // config.h — Parámetros configurables del sistema
 // =============================================================================
 
-// WiFi
-#define WIFI_SSID        "TU_SSID"
-#define WIFI_PASSWORD    "TU_PASSWORD"
+// WiFi — credenciales en credentials.h
+#include "credentials.h"  // nunca subir al repo — ver credentials.h.example
 
 // ThingsBoard
 #define TB_HOST          "thingsboard.cloud"
 #define TB_PORT          1883
-#define TB_ACCESS_TOKEN  "TU_ACCESS_TOKEN"
 
 // RS-485 / Modbus
 #define RS485_BAUD       115200
