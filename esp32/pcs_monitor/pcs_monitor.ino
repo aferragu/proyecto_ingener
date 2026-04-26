@@ -22,6 +22,7 @@
 #include "bms.h"
 #include "mqtt.h"
 #include "ems.h"
+#include <WiFi.h>
 
 StaticJsonDocument<2048> telemetry;
 
