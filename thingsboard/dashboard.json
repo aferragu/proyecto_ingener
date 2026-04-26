@@ -3,10 +3,11 @@
   "configuration": {
     "description": "SinoSoar SP6030 via ESP32 Modbus RTU V3.0",
     "widgets": {
+
       "w_running": {
         "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "bundleAlias": "status_indicators",
+        "typeAlias": "status_indicator",
         "type": "latest",
         "title": "Estado",
         "sizeX": 2, "sizeY": 2, "row": 0, "col": 0,
@@ -15,17 +16,21 @@
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
-            "dataKeys": [{"name": "running", "label": "Running", "type": "timeseries",
-              "settings": {"usePostProcessingFunction": true,
-                "postProcessingFunction": "return value == 1 ? '🟢 RUNNING' : '🔴 STOPPED';"}}]
+            "dataKeys": [{"name": "running", "label": "Estado", "type": "timeseries"}]
           }],
-          "settings": {}
+          "settings": {
+            "layout": "square",
+            "showLabel": true,
+            "labelFunction": "return value == 1 ? 'RUNNING' : 'STOPPED';",
+            "colorFunction": "return value == 1 ? '#4CAF50' : '#F44336';"
+          }
         }
       },
+
       "w_fault": {
         "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "bundleAlias": "status_indicators",
+        "typeAlias": "status_indicator",
         "type": "latest",
         "title": "Fault",
         "sizeX": 2, "sizeY": 2, "row": 0, "col": 2,
@@ -34,17 +39,21 @@
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
-            "dataKeys": [{"name": "fault", "label": "Fault", "type": "timeseries",
-              "settings": {"usePostProcessingFunction": true,
-                "postProcessingFunction": "return value == 1 ? '🔴 FAULT' : '✅ OK';"}}]
+            "dataKeys": [{"name": "fault", "label": "Fault", "type": "timeseries"}]
           }],
-          "settings": {}
+          "settings": {
+            "layout": "square",
+            "showLabel": true,
+            "labelFunction": "return value == 1 ? 'FAULT' : 'OK';",
+            "colorFunction": "return value == 1 ? '#F44336' : '#4CAF50';"
+          }
         }
       },
+
       "w_alarm": {
         "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "bundleAlias": "status_indicators",
+        "typeAlias": "status_indicator",
         "type": "latest",
         "title": "Alarm",
         "sizeX": 2, "sizeY": 2, "row": 0, "col": 4,
@@ -53,17 +62,21 @@
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
-            "dataKeys": [{"name": "alarm", "label": "Alarm", "type": "timeseries",
-              "settings": {"usePostProcessingFunction": true,
-                "postProcessingFunction": "return value == 1 ? '🟡 ALARM' : '✅ OK';"}}]
+            "dataKeys": [{"name": "alarm", "label": "Alarm", "type": "timeseries"}]
           }],
-          "settings": {}
+          "settings": {
+            "layout": "square",
+            "showLabel": true,
+            "labelFunction": "return value == 1 ? 'ALARM' : 'OK';",
+            "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+          }
         }
       },
+
       "w_grid_tied": {
         "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "bundleAlias": "status_indicators",
+        "typeAlias": "status_indicator",
         "type": "latest",
         "title": "Red",
         "sizeX": 2, "sizeY": 2, "row": 0, "col": 6,
@@ -72,17 +85,21 @@
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
-            "dataKeys": [{"name": "grid_tied", "label": "Grid", "type": "timeseries",
-              "settings": {"usePostProcessingFunction": true,
-                "postProcessingFunction": "return value == 1 ? '🟢 GRID-TIED' : '🔴 OFF-GRID';"}}]
+            "dataKeys": [{"name": "grid_tied", "label": "Red", "type": "timeseries"}]
           }],
-          "settings": {}
+          "settings": {
+            "layout": "square",
+            "showLabel": true,
+            "labelFunction": "return value == 1 ? 'GRID-TIED' : 'OFF-GRID';",
+            "colorFunction": "return value == 1 ? '#4CAF50' : '#FF9800';"
+          }
         }
       },
+
       "w_derating": {
         "isSystemType": true,
-        "bundleAlias": "cards",
-        "typeAlias": "simple_card",
+        "bundleAlias": "status_indicators",
+        "typeAlias": "status_indicator",
         "type": "latest",
         "title": "Derating",
         "sizeX": 2, "sizeY": 2, "row": 0, "col": 8,
@@ -91,13 +108,17 @@
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
-            "dataKeys": [{"name": "derating", "label": "Derating", "type": "timeseries",
-              "settings": {"usePostProcessingFunction": true,
-                "postProcessingFunction": "return value == 1 ? '🟡 DERATING' : '✅ OK';"}}]
+            "dataKeys": [{"name": "derating", "label": "Derating", "type": "timeseries"}]
           }],
-          "settings": {}
+          "settings": {
+            "layout": "square",
+            "showLabel": true,
+            "labelFunction": "return value == 1 ? 'DERATING' : 'OK';",
+            "colorFunction": "return value == 1 ? '#FF9800' : '#4CAF50';"
+          }
         }
       },
+
       "w_freq": {
         "isSystemType": true,
         "bundleAlias": "cards",
@@ -116,13 +137,13 @@
         }
       },
 
-      "w_p_inv_gauge": {
+      "w_p_inv_card": {
         "isSystemType": true,
-        "bundleAlias": "analogue_gauges",
-        "typeAlias": "arc_gauge",
+        "bundleAlias": "cards",
+        "typeAlias": "simple_card",
         "type": "latest",
-        "title": "Potencia Inversor (kW)",
-        "sizeX": 3, "sizeY": 3, "row": 2, "col": 0,
+        "title": "Potencia Inversor",
+        "sizeX": 3, "sizeY": 2, "row": 2, "col": 0,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -130,16 +151,17 @@
             "entityAliasId": "inverter",
             "dataKeys": [{"name": "p_inv_kw", "label": "kW", "type": "timeseries"}]
           }],
-          "settings": {"minValue": -35, "maxValue": 35, "units": "kW", "decimals": 1}
+          "settings": {"decimals": 2, "units": "kW"}
         }
       },
-      "w_grid_p_gauge": {
+
+      "w_grid_p_card": {
         "isSystemType": true,
-        "bundleAlias": "analogue_gauges",
-        "typeAlias": "arc_gauge",
+        "bundleAlias": "cards",
+        "typeAlias": "simple_card",
         "type": "latest",
-        "title": "Potencia Red (kW)",
-        "sizeX": 3, "sizeY": 3, "row": 2, "col": 3,
+        "title": "Potencia Red",
+        "sizeX": 3, "sizeY": 2, "row": 2, "col": 3,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -147,16 +169,17 @@
             "entityAliasId": "inverter",
             "dataKeys": [{"name": "grid_p_kw", "label": "kW", "type": "timeseries"}]
           }],
-          "settings": {"minValue": 0, "maxValue": 50, "units": "kW", "decimals": 1}
+          "settings": {"decimals": 2, "units": "kW"}
         }
       },
-      "w_load_p_gauge": {
+
+      "w_load_p_card": {
         "isSystemType": true,
-        "bundleAlias": "analogue_gauges",
-        "typeAlias": "arc_gauge",
+        "bundleAlias": "cards",
+        "typeAlias": "simple_card",
         "type": "latest",
-        "title": "Potencia Carga (kW)",
-        "sizeX": 3, "sizeY": 3, "row": 2, "col": 6,
+        "title": "Potencia Carga",
+        "sizeX": 3, "sizeY": 2, "row": 2, "col": 6,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -164,16 +187,17 @@
             "entityAliasId": "inverter",
             "dataKeys": [{"name": "load_p_kw", "label": "kW", "type": "timeseries"}]
           }],
-          "settings": {"minValue": 0, "maxValue": 50, "units": "kW", "decimals": 1}
+          "settings": {"decimals": 2, "units": "kW"}
         }
       },
-      "w_dc_gauge": {
+
+      "w_dc_p_card": {
         "isSystemType": true,
-        "bundleAlias": "analogue_gauges",
-        "typeAlias": "arc_gauge",
+        "bundleAlias": "cards",
+        "typeAlias": "simple_card",
         "type": "latest",
-        "title": "Potencia DC (kW)",
-        "sizeX": 3, "sizeY": 3, "row": 2, "col": 9,
+        "title": "Potencia DC",
+        "sizeX": 3, "sizeY": 2, "row": 2, "col": 9,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -181,40 +205,41 @@
             "entityAliasId": "inverter",
             "dataKeys": [{"name": "dc_power_kw", "label": "kW", "type": "timeseries"}]
           }],
-          "settings": {"minValue": -35, "maxValue": 35, "units": "kW", "decimals": 1}
+          "settings": {"decimals": 2, "units": "kW"}
         }
       },
 
       "w_p_chart": {
         "isSystemType": true,
         "bundleAlias": "charts",
-        "typeAlias": "basic_timeseries",
+        "typeAlias": "timeseries_flot",
         "type": "timeseries",
         "title": "Potencias (kW) — histórico",
-        "sizeX": 8, "sizeY": 4, "row": 5, "col": 0,
+        "sizeX": 8, "sizeY": 4, "row": 4, "col": 0,
         "config": {
           "showTitle": true,
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
             "dataKeys": [
-              {"name": "p_inv_kw",   "label": "Inversor (kW)", "type": "timeseries", "color": "#2196F3"},
-              {"name": "grid_p_kw",  "label": "Red (kW)",      "type": "timeseries", "color": "#4CAF50"},
-              {"name": "load_p_kw",  "label": "Carga (kW)",    "type": "timeseries", "color": "#FF9800"},
-              {"name": "dc_power_kw","label": "DC (kW)",       "type": "timeseries", "color": "#9C27B0"}
+              {"name": "p_inv_kw",    "label": "Inversor (kW)", "type": "timeseries", "color": "#2196F3"},
+              {"name": "grid_p_kw",   "label": "Red (kW)",      "type": "timeseries", "color": "#4CAF50"},
+              {"name": "load_p_kw",   "label": "Carga (kW)",    "type": "timeseries", "color": "#FF9800"},
+              {"name": "dc_power_kw", "label": "DC (kW)",       "type": "timeseries", "color": "#9C27B0"}
             ]
           }],
           "settings": {"shadowSize": 0, "smoothLines": true},
           "timewindow": {"realtime": {"timewindowMs": 3600000}}
         }
       },
+
       "w_dc_detail": {
         "isSystemType": true,
         "bundleAlias": "cards",
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "DC",
-        "sizeX": 4, "sizeY": 4, "row": 5, "col": 8,
+        "sizeX": 4, "sizeY": 4, "row": 4, "col": 8,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -236,16 +261,16 @@
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "Tensiones AC inversor",
-        "sizeX": 3, "sizeY": 3, "row": 9, "col": 0,
+        "sizeX": 3, "sizeY": 3, "row": 8, "col": 0,
         "config": {
           "showTitle": true,
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
             "dataKeys": [
-              {"name": "v_a",  "label": "Va (V)", "type": "timeseries"},
-              {"name": "v_b",  "label": "Vb (V)", "type": "timeseries"},
-              {"name": "v_c",  "label": "Vc (V)", "type": "timeseries"},
+              {"name": "v_a",  "label": "Va (V)",  "type": "timeseries"},
+              {"name": "v_b",  "label": "Vb (V)",  "type": "timeseries"},
+              {"name": "v_c",  "label": "Vc (V)",  "type": "timeseries"},
               {"name": "v_ab", "label": "Vab (V)", "type": "timeseries"},
               {"name": "v_bc", "label": "Vbc (V)", "type": "timeseries"},
               {"name": "v_ca", "label": "Vca (V)", "type": "timeseries"}
@@ -254,13 +279,14 @@
           "settings": {}
         }
       },
+
       "w_ac_currents": {
         "isSystemType": true,
         "bundleAlias": "cards",
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "Corrientes AC inversor",
-        "sizeX": 3, "sizeY": 3, "row": 9, "col": 3,
+        "sizeX": 3, "sizeY": 3, "row": 8, "col": 3,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -275,36 +301,38 @@
           "settings": {}
         }
       },
+
       "w_grid_detail": {
         "isSystemType": true,
         "bundleAlias": "cards",
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "Red",
-        "sizeX": 3, "sizeY": 3, "row": 9, "col": 6,
+        "sizeX": 3, "sizeY": 3, "row": 8, "col": 6,
         "config": {
           "showTitle": true,
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
             "dataKeys": [
-              {"name": "grid_v_a",     "label": "Grid Va (V)",   "type": "timeseries"},
-              {"name": "grid_v_b",     "label": "Grid Vb (V)",   "type": "timeseries"},
-              {"name": "grid_v_c",     "label": "Grid Vc (V)",   "type": "timeseries"},
-              {"name": "grid_freq_hz", "label": "Grid Freq (Hz)","type": "timeseries"},
-              {"name": "grid_p_kw",    "label": "Grid P (kW)",   "type": "timeseries"}
+              {"name": "grid_v_a",     "label": "Grid Va (V)",    "type": "timeseries"},
+              {"name": "grid_v_b",     "label": "Grid Vb (V)",    "type": "timeseries"},
+              {"name": "grid_v_c",     "label": "Grid Vc (V)",    "type": "timeseries"},
+              {"name": "grid_freq_hz", "label": "Grid Freq (Hz)", "type": "timeseries"},
+              {"name": "grid_p_kw",    "label": "Grid P (kW)",    "type": "timeseries"}
             ]
           }],
           "settings": {}
         }
       },
+
       "w_pf": {
         "isSystemType": true,
         "bundleAlias": "cards",
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "Factor de potencia",
-        "sizeX": 3, "sizeY": 3, "row": 9, "col": 9,
+        "sizeX": 3, "sizeY": 3, "row": 8, "col": 9,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -324,10 +352,10 @@
       "w_load_chart": {
         "isSystemType": true,
         "bundleAlias": "charts",
-        "typeAlias": "basic_timeseries",
+        "typeAlias": "timeseries_flot",
         "type": "timeseries",
         "title": "Potencia por fase — carga (kW)",
-        "sizeX": 6, "sizeY": 4, "row": 12, "col": 0,
+        "sizeX": 6, "sizeY": 4, "row": 11, "col": 0,
         "config": {
           "showTitle": true,
           "datasources": [{
@@ -343,27 +371,28 @@
           "timewindow": {"realtime": {"timewindowMs": 3600000}}
         }
       },
+
       "w_load_detail": {
         "isSystemType": true,
         "bundleAlias": "cards",
         "typeAlias": "attributes_card",
         "type": "latest",
         "title": "Mediciones carga (V3.0)",
-        "sizeX": 6, "sizeY": 4, "row": 12, "col": 6,
+        "sizeX": 6, "sizeY": 4, "row": 11, "col": 6,
         "config": {
           "showTitle": true,
           "datasources": [{
             "type": "entity",
             "entityAliasId": "inverter",
             "dataKeys": [
-              {"name": "load_v_a",  "label": "Va carga (V)", "type": "timeseries"},
-              {"name": "load_v_b",  "label": "Vb carga (V)", "type": "timeseries"},
-              {"name": "load_v_c",  "label": "Vc carga (V)", "type": "timeseries"},
-              {"name": "load_i_a",  "label": "Ia carga (A)", "type": "timeseries"},
-              {"name": "load_i_b",  "label": "Ib carga (A)", "type": "timeseries"},
-              {"name": "load_i_c",  "label": "Ic carga (A)", "type": "timeseries"},
-              {"name": "load_p_kw", "label": "P total (kW)", "type": "timeseries"},
-              {"name": "load_s_kva","label": "S total (kVA)","type": "timeseries"}
+              {"name": "load_v_a",   "label": "Va carga (V)",   "type": "timeseries"},
+              {"name": "load_v_b",   "label": "Vb carga (V)",   "type": "timeseries"},
+              {"name": "load_v_c",   "label": "Vc carga (V)",   "type": "timeseries"},
+              {"name": "load_i_a",   "label": "Ia carga (A)",   "type": "timeseries"},
+              {"name": "load_i_b",   "label": "Ib carga (A)",   "type": "timeseries"},
+              {"name": "load_i_c",   "label": "Ic carga (A)",   "type": "timeseries"},
+              {"name": "load_p_kw",  "label": "P total (kW)",   "type": "timeseries"},
+              {"name": "load_s_kva", "label": "S total (kVA)",  "type": "timeseries"}
             ]
           }],
           "settings": {}
