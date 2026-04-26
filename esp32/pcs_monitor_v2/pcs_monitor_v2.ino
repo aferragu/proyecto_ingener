@@ -167,15 +167,15 @@ bool readRegisters(uint16_t startReg, uint16_t count, int16_t* out) {
     uint8_t rxBuf[256];
     uint32_t t = millis();
     uint8_t  idx = 0;
-    // Esperar primer byte hasta 200ms, luego drear el resto con timeout corto
-    while ((millis() - t) < 200 && idx == 0) {
+    // Esperar primer byte hasta 50ms, luego drear el resto con timeout corto
+    while ((millis() - t) < 50 && idx == 0) {
         if (RS485_SERIAL.available())
             rxBuf[idx++] = RS485_SERIAL.read();
     }
     if (idx == 0) return false;  // sin respuesta — salir rápido
-    // Leer el resto de la respuesta (50ms adicionales)
+    // Leer el resto de la respuesta (20ms adicionales)
     t = millis();
-    while ((millis() - t) < 50) {
+    while ((millis() - t) < 20) {
         if (RS485_SERIAL.available() && idx < sizeof(rxBuf))
             rxBuf[idx++] = RS485_SERIAL.read();
     }
@@ -210,13 +210,13 @@ bool writeRegister(uint16_t reg, int16_t value) {
     uint8_t rxBuf[8];
     uint32_t t = millis();
     uint8_t  idx = 0;
-    while ((millis() - t) < 200 && idx == 0) {
+    while ((millis() - t) < 50 && idx == 0) {
         if (RS485_SERIAL.available())
             rxBuf[idx++] = RS485_SERIAL.read();
     }
     if (idx == 0) return false;
     t = millis();
-    while ((millis() - t) < 50) {
+    while ((millis() - t) < 20) {
         if (RS485_SERIAL.available() && idx < 8)
             rxBuf[idx++] = RS485_SERIAL.read();
     }
@@ -700,10 +700,11 @@ void loop() {
         pollModbus();
     }
 
-    if (now - lastCanMs >= POLL_CAN_MS) {
-        lastCanMs = now;
-        pollCAN();
-    }
+    // CAN deshabilitado temporalmente hasta tener protocolo BMS
+    // if (now - lastCanMs >= POLL_CAN_MS) {
+    //     lastCanMs = now;
+    //     pollCAN();
+    // }
 
     if (now - lastPublishMs >= PUBLISH_MS) {
         lastPublishMs = now;
