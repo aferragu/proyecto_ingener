@@ -2,7 +2,7 @@
 // PCS Inverter Monitor — ESP32
 //
 // Modbus RTU RS-485 → inversor SinoSoar SP6030 (protocolo V3.0)
-// CAN bus (TWAI)    → BMS (stub, ver bms.cpp)
+// CAN bus (TWAI)    → BMS Pylontech high voltage (protocolo V1.24)
 // WiFi MQTT         → ThingsBoard thingsboard.cloud
 //
 // Librerías (Arduino Library Manager):
@@ -43,12 +43,14 @@ void setup() {
     RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
 
     initCAN();
+    initBMS();
     connectWiFi();
     connectMQTT();
     readFirmwareVersion(mqttClient);
     inverterInit();
 
     pollModbus(telemetry);
+    pollCAN(telemetry);
     publishTelemetry(telemetry);
 
     lastModbusMs  = millis();
@@ -80,14 +82,13 @@ void loop() {
     if (now - lastModbusMs >= POLL_MODBUS_MS) {
         lastModbusMs = now;
         pollModbus(telemetry);
-        emsUpdate(telemetry);   // TODO: activar cuando EMS esté implementado
+        emsUpdate(telemetry);
     }
 
-    // CAN deshabilitado hasta tener protocolo BMS
-    // if (now - lastCanMs >= POLL_CAN_MS) {
-    //     lastCanMs = now;
-    //     pollCAN(telemetry);
-    // }
+    if (now - lastCanMs >= POLL_CAN_MS) {
+        lastCanMs = now;
+        pollCAN(telemetry);
+    }
 
     if (now - lastPublishMs >= PUBLISH_MS) {
         lastPublishMs = now;
