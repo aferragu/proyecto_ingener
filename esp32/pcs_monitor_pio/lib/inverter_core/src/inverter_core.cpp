@@ -1,6 +1,5 @@
 #include "inverter_core.h"
 #include "inverter_scales.h"
-#include "config.h"
 
 void inverter_parse_status(const int16_t* r, StatusData& o) {
     uint16_t s = (uint16_t)r[0];

@@ -8,6 +8,15 @@
 // Scale factors from: SinoSoar PCS Modbus Communication Protocol V3.0
 // =============================================================================
 
+// --- Register addresses (from protocol table) --------------------------------
+#define REG_DC_MAX_DISCHG_CURRENT  763
+#define REG_DC_MAX_CHG_CURRENT     764
+#define REG_3PHASE_CTRL_MODE       341
+#define REG_PV_SWITCH              652
+#define REG_LEAKAGE_DETECT         795
+#define REG_DCDC_SWITCH            656
+#define REG_ANTI_BACKFLOW          873
+
 // Decoded AC measurements (registers 100–125)
 struct AcData {
     float freq_hz;

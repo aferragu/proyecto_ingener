@@ -39,13 +39,7 @@
 
 // Registros Modbus — SP6030 protocolo V3.0
 // Init
-#define REG_DC_MAX_DISCHG_CURRENT  763
-#define REG_DC_MAX_CHG_CURRENT     764
-#define REG_3PHASE_CTRL_MODE       341
-#define REG_PV_SWITCH              652
-#define REG_ANTI_BACKFLOW          873
-#define REG_LEAKAGE_DETECT         795
-#define REG_DCDC_SWITCH            656
+// Inverter register addresses are defined in lib/inverter_core/src/inverter_core.h
 // Lectura
 #define REG_STATUS                  32
 #define REG_STATUS_COUNT             1
