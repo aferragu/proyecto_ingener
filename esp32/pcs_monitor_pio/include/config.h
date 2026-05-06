@@ -15,9 +15,9 @@
 #define RS485_SERIAL     Serial2
 #define RS485_TX_PIN     17
 #define RS485_RX_PIN     16
-#define RS485_DE_RE_PIN  4      // NOTE: GPIO4 is also used as LCD_RST on Ideaspark board.
-                                // Do not use the display and RS-485 simultaneously without
-                                // remapping one of these pins.
+#define RS485_DE_RE_PIN  5      // GPIO5 — DE+RE control for MAX485
+                                // NOTE: GPIO4 is hardwired to LCD RST on the Ideaspark board
+                                // and cannot be used for RS-485. Wire MAX485 DE+RE to GPIO5.
 #define MODBUS_DEVICE_ID 1      // Dirección DIP switch del inversor (1-247)
 
 // CAN / BMS

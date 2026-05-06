@@ -2,79 +2,117 @@
 
 ## Descripción general
 
-Firmware para ESP32 NodeMCU que actúa como EMS (Energy Management System) de monitoreo y control para el inversor SinoSoar SP6030. Lee datos del inversor via Modbus RTU (RS-485), del BMS via CAN bus, publica telemetría a ThingsBoard Cloud via MQTT sobre WiFi, y recibe comandos de control via RPC.
+Firmware para ESP32 que actúa como EMS (Energy Management System) de monitoreo y control para el inversor SinoSoar SP6030. Lee datos del inversor via Modbus RTU (RS-485), del BMS Pylontech via CAN bus, publica telemetría a ThingsBoard via MQTT sobre WiFi, y recibe comandos de control via RPC.
 
-El proyecto tiene dos sketches:
-- **`pcs_monitor_v2/`** — monolítico, para prototipo y pruebas rápidas
-- **`pcs_monitor/`** — modular, arquitectura de producción
+El proyecto está organizado como un proyecto PlatformIO en `esp32/pcs_monitor_pio/`. El sketch monolítico original queda en `esp32/pcs_monitor/` como referencia.
 
 ---
 
-## Arquitectura del sistema
+## Estructura del repositorio
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    ESP32 NodeMCU                     │
-│                                                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │ modbus   │  │   bms    │  │      mqtt        │  │
-│  │ .cpp/.h  │  │ .cpp/.h  │  │    .cpp/.h       │  │
-│  └────┬─────┘  └────┬─────┘  └────────┬─────────┘  │
-│       │              │                 │             │
-│  ┌────┴─────┐  ┌─────┴────┐  ┌────────┴─────────┐  │
-│  │ inverter │  │  (stub)  │  │   ThingsBoard     │  │
-│  │ .cpp/.h  │  │  CAN bus │  │   MQTT Cloud      │  │
-│  └──────────┘  └──────────┘  └───────────────────┘  │
-│                                                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │   ems    │  │ display  │  │     config.h     │  │
-│  │ .cpp/.h  │  │ .cpp/.h  │  │  credentials.h   │  │
-│  └──────────┘  └──────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────┘
-         │                │                │
-    RS-485 MAX485     CAN SN65HVD230    WiFi
-         │                │
-  Inversor SP6030      BMS (TBD)
+esp32/
+├── pcs_monitor/           # sketch Arduino original (referencia)
+└── pcs_monitor_pio/       # proyecto PlatformIO (activo)
+    ├── platformio.ini
+    ├── include/           # headers
+    ├── src/               # firmware de producción
+    ├── test/              # tests unitarios (pio test -e native)
+    └── sketches/          # sketches de prueba de hardware
 ```
+
+### Entornos PlatformIO
+
+| Entorno | Comando | Descripción |
+|---|---|---|
+| `esp32dev` | `pio run -e esp32dev -t upload` | Firmware de producción |
+| `native` | `pio test -e native` | Tests unitarios en el host (sin hardware) |
+| `test_mqtt` | `pio run -e test_mqtt -t upload` | Prueba WiFi + ThingsBoard |
+| `test_display` | `pio run -e test_display -t upload` | Prueba pantalla ST7789 |
+| `test_modbus_hw` | `pio run -e test_modbus_hw -t upload` | Prueba Modbus real |
+| `test_can_hw` | `pio run -e test_can_hw -t upload` | Prueba CAN / BMS |
+| `test_dashboard` | `pio run -e test_dashboard -t upload` | Telemetría real → ThingsBoard |
 
 ---
 
-## Conexiones de hardware
+## Hardware
+
+### Board
+
+**Ideaspark ESP32** con pantalla LCD TFT ST7789 integrada de 1.14" (135×240).
+
+### Diagrama de conexiones
 
 ```
-ESP32 GPIO17 (TX2) ──► MAX485 DI
-ESP32 GPIO16 (RX2) ◄── MAX485 RO        → RS-485 bus → Inversor
-ESP32 GPIO4        ──► MAX485 DE+RE
+ESP32 GPIO17 (TX2) ──► MAX485 DI  ─┐
+ESP32 GPIO16 (RX2) ◄── MAX485 RO   ├── RS-485 bus → Inversor SP6030
+ESP32 GPIO5  (*)   ──► MAX485 DE+RE─┘
 
-ESP32 GPIO21 (TX)  ──► SN65HVD230 D
-ESP32 GPIO22 (RX)  ◄── SN65HVD230 R     → CAN bus → BMS
-             GND   ──► SN65HVD230 Rs
+ESP32 GPIO21       ──► SN65HVD230 TX ─┐
+ESP32 GPIO22       ◄── SN65HVD230 RX  ├── CAN bus → BMS Pylontech
+             GND   ──► SN65HVD230 Rs  ┘
 
-ESP32 GPIO2        ──► LED integrado (activo LOW)
-
-ESP32 GPIO23 (MOSI)──► LCD MOSI
-ESP32 GPIO18 (SCLK)──► LCD SCLK         → ST7789 1.14" (ideaspark)
-ESP32 GPIO15 (CS)  ──► LCD CS
-ESP32 GPIO32 (BLK) ──► LCD backlight
+ESP32 GPIO23 (MOSI)──► LCD MOSI ─┐
+ESP32 GPIO18 (SCLK)──► LCD SCLK  │
+ESP32 GPIO15       ──► LCD CS    ├── ST7789 1.14" (integrada Ideaspark)
+ESP32 GPIO2        ──► LCD DC    │
+ESP32 GPIO4        ──► LCD RST   │
+ESP32 GPIO32       ──► LCD BLK   ┘
 ```
+
+> (*) `RS485_DE_RE_PIN` está definido como GPIO5 en `config.h`. **GPIO4 está reservado para LCD RST** en la placa Ideaspark y no puede usarse para RS-485. Al cablear el MAX485, conectar DE+RE a GPIO5.
+
+### Pines ocupados
+
+| GPIO | Función |
+|---|---|
+| 2 | LCD DC |
+| 4 | LCD RST (hardwired en Ideaspark) |
+| 5 | RS485 DE+RE |
+| 15 | LCD CS |
+| 16 | RS485 RX |
+| 17 | RS485 TX |
+| 18 | LCD SCLK |
+| 21 | CAN TX |
+| 22 | CAN RX |
+| 23 | LCD MOSI |
+| 32 | LCD backlight |
+
+Libres para uso general: 12, 13, 14, 25, 26, 27, 33, 34 (input only), 35 (input only).
 
 ---
 
-## Estructura de archivos
+## Arquitectura del firmware
+
+### Módulos de producción (`src/`)
 
 ```
-esp32/pcs_monitor/
-├── pcs_monitor.ino     # setup() y loop() — orquestador
-├── config.h            # todos los #define configurables
-├── credentials.h       # WiFi + token (gitignored, ver .example)
-├── credentials.h.example
-├── modbus.h/cpp        # Modbus RTU: readRegisters, writeRegister, CRC16
-├── inverter.h/cpp      # init, verify, pollModbus, readFirmwareVersion
-├── bms.h/cpp           # CAN TWAI: initCAN, pollCAN (stub)
-├── mqtt.h/cpp          # WiFi, MQTT, RPC, publishTelemetry, updateLed
-├── ems.h/cpp           # lógica de control EMS (stub, pendiente)
-└── display.h/cpp       # LCD ST7789 TFT_eSPI (pendiente integración)
+src/
+├── main.cpp          # setup() y loop() — orquestador
+├── modbus.cpp        # capa hardware RS-485: UART send/receive
+├── modbus_core.cpp   # lógica pura: CRC16, frame building, response parsing
+├── inverter.cpp      # capa hardware: readFirmwareVersion, init, pollModbus
+├── inverter_core.cpp # lógica pura: register scaling, init sequence
+├── bms.cpp           # capa hardware: TWAI init, pollCAN
+├── bms_core.cpp      # lógica pura: Pylontech CAN frame decoding
+├── mqtt.cpp          # WiFi, MQTT, RPC handler, LED
+├── ems.cpp           # lógica de control EMS (stub, pendiente)
+└── display.cpp       # LCD ST7789 (pendiente integración)
 ```
+
+Cada módulo está dividido en dos capas:
+
+- **`_core.cpp`** — lógica pura sin dependencias de hardware. Puede compilarse en el host para tests unitarios.
+- **`.cpp`** — capa hardware que delega la lógica a `_core` y maneja periféricos (UART, TWAI, WiFi).
+
+### Headers de escalas (`include/`)
+
+| Header | Fuente | Contenido |
+|---|---|---|
+| `inverter_scales.h` | SinoSoar PCS Modbus Protocol V3.0 | Factores de escala por tipo de registro |
+| `bms_scales.h` | Pylontech CAN Bus Protocol V1.24 | Escalas y offsets de tramas CAN |
+
+Estos headers son la única fuente de verdad para las conversiones de valores crudos a físicos. Si un factor de escala cambia, se corrige aquí y el cambio se propaga a producción y tests.
 
 ---
 
@@ -83,81 +121,108 @@ esp32/pcs_monitor/
 ### setup()
 ```
 Boot
- ├── LED OFF
  ├── RS-485 init (UART2, 115200 bps, 8N1)
- ├── CAN init (TWAI, listen-only, 250 kbps)
+ ├── CAN init (TWAI, 250 kbps)
  ├── WiFi connect
- ├── MQTT connect + suscribe RPC
+ ├── MQTT connect + subscribe RPC
  ├── readFirmwareVersion() → publica atributos ThingsBoard
  ├── inverterInit() → escribe secuencia de configuración
- ├── pollModbus() → primera lectura
+ ├── pollModbus() + pollCAN() → primera lectura
  └── publishTelemetry() → primera publicación
 ```
 
 ### loop()
 ```
 Loop continuo
- ├── mqttClient.loop()          continuo — procesa RPC entrantes
- ├── WiFi reconnect             si desconectado
- ├── updateLed()                continuo
- ├── verifyAndReinit()          cada 60s
- ├── pollModbus() + emsUpdate() cada 5s
- └── publishTelemetry()         cada 10s
+ ├── mqtt.loop()           continuo — procesa RPC entrantes
+ ├── WiFi reconnect        si desconectado
+ ├── updateLed()           continuo
+ ├── verifyAndReinit()     cada 60s
+ ├── pollModbus()          cada 5s
+ ├── pollCAN()             cada 1s
+ └── publishTelemetry()    cada 10s
 ```
 
 ---
 
 ## Módulos
 
-### modbus
+### modbus / modbus_core
+
 Implementación manual Modbus RTU sobre RS-485:
 - FC 0x03 — Read Holding Registers
 - FC 0x06 — Preset Single Register
 - CRC16 polinomio 0xA001, byte bajo primero
-- Timeout en dos fases: espera primer byte 50ms, drena 20ms más. Retorna `false` inmediatamente si no hay respuesta.
+- Timeout en dos fases: espera primer byte 50ms, drena 20ms más
 
-### inverter
-| Función | Descripción |
-|---|---|
-| `readFirmwareVersion()` | Lee regs 0–21, loguea versiones, publica como atributos TB |
-| `inverterInit()` | Escribe secuencia de init del fabricante (ver tabla abajo) |
-| `verifyAndReinit()` | Verifica config cada 60s y corrige si el inversor se reinició |
-| `pollModbus()` | Lee 6 bloques de registros y llena el documento de telemetría |
+`modbus_core` expone: `crc16()`, `modbus_build_read()`, `modbus_build_write()`, `modbus_parse_read()`, `modbus_parse_write()`.
+
+### inverter / inverter_core
 
 **Secuencia de init** (replicada del EMS del fabricante via Wireshark):
 
 | Registro | Valor | Descripción |
 |---|---|---|
-| 763 | 1500 | Max corriente descarga DC = 150 A (×0.1) |
-| 764 | 1500 | Max corriente carga DC = 150 A (×0.1) |
+| 763 | 1500 | Max corriente descarga DC = 150 A |
+| 764 | 1500 | Max corriente carga DC = 150 A |
 | 341 | 1 | Control por fase individual |
 | 652 | 0 | PV apagado |
-| 873 | bit0=1 | Anti-backflow habilitado (**read-modify-write**) |
 | 795 | 0 | Detección de fuga deshabilitada |
 | 656 | 0 | DCDC apagado |
+| 873 | bit0=1 | Anti-backflow (**read-modify-write**) |
 
-> ⚠ Power ON (reg 650) **no está** en el init automático — debe ejecutarse manualmente via RPC `powerOn` para evitar reinicios involuntarios.
+> ⚠ Power ON (reg 650) no está en el init automático — debe ejecutarse via RPC `powerOn`.
 
 **Bloques Modbus leídos en cada ciclo:**
 
 | Bloque | Registros | Keys ThingsBoard |
 |---|---|---|
 | Estado | 32 | running, fault, alarm, grid_tied, off_grid, derating, standby |
-| AC inversor | 100–125 | freq_hz, v_a/b/c, v_ab/bc/ca, i_a/b/c, p_a/b/c_kw, q_a/b/c_kvar, pf_a/b/c, p_inv_kw, q_inv_kvar, pf_total |
+| AC inversor | 100–125 | freq_hz, v_a/b/c, i_a/b/c, p_a/b/c_kw, q_a/b/c_kvar, pf_total, p_inv_kw |
 | DC | 141–143 | dc_power_kw, dc_voltage_v, dc_current_a |
-| Red | 170–179 | grid_freq_hz, grid_v_a/b/c |
-| Potencia red | 192 | grid_p_kw |
-| Carga (V3.0) | 200–213 | load_freq_hz, load_v/i_a/b/c, load_p_a/b/c_kw, load_p_kw, load_s_kva |
+| Red | 170–179, 192 | grid_freq_hz, grid_v_a/b/c, grid_p_kw |
+| Carga (V3.0) | 200–213 | load_p_kw, load_s_kva, load_v/i_a/b/c |
 
-> ⚠ Registros 200–213 requieren firmware RTU V3.0 (reg 19 ≥ 30).
+> ⚠ Registros 200–213 requieren firmware RTU ≥ V3.0 (reg 19 ≥ 30).
+
+**Factores de escala** (`inverter_scales.h`):
+
+| Constante | Valor | Aplica a |
+|---|---|---|
+| `SCALE_FREQ_HZ` | 0.01 | Frecuencia |
+| `SCALE_VOLTAGE_V` | 0.1 | Tensiones AC y DC |
+| `SCALE_CURRENT_A` | 0.1 | Corrientes AC y DC |
+| `SCALE_POWER_KW` | 0.01 | Potencias activa y reactiva (lectura) |
+| `SCALE_PF` | 0.01 | Factor de potencia |
+| `SCALE_SET_POWER_KW` | 0.1 | Reg 135 setPower (escritura, distinto del resto) |
+
+### bms / bms_core
+
+Protocolo: Pylontech High Voltage CAN Bus V1.24, 250 kbps, IDs de 11 bits.
+
+| CAN ID | Contenido |
+|---|---|
+| 0x421+addr | Tensión pack, corriente, temperatura, SOC, SOH |
+| 0x422+addr | Límites carga/descarga (tensión y corriente máxima) |
+| 0x425+addr | Estado, fault, alarm, protection |
+| 0x428+addr | Flags forbidden, SOE |
+
+**Factores de escala** (`bms_scales.h`):
+
+| Campo | Scale | Offset |
+|---|---|---|
+| Tensión (0x421) | 0.1 V | 0 |
+| Corriente (0x421, 0x422) | 0.1 A | −3000 A |
+| Temperatura (0x421) | 0.1 °C | −100 °C |
+| Tensión de corte (0x422) | 0.1 V | 0 |
+| Forbidden mark (0x428) | — | 0xAA = forbidden |
 
 ### mqtt
-- `connectWiFi()` / `connectMQTT()` — conexión y reconexión automática
-- `publishTelemetry()` — serializa JSON y publica a `v1/devices/me/telemetry`
-- `onRpcMessage()` — callback MQTT para RPCs entrantes
-- `updateLed()` — LED verde si WiFi + MQTT OK, apagado si cualquiera falla
-- Client ID único basado en MAC para evitar conflictos entre dispositivos
-- `setServer/setBufferSize/setCallback` se llaman solo una vez (flag estático)
+
+- Reconexión automática WiFi y MQTT en el loop
+- Buffer MQTT: 2048 bytes
+- Client ID único basado en MAC
+- `setServer/setBufferSize/setCallback` se inicializan una sola vez
 
 **RPCs soportados:**
 
@@ -165,16 +230,55 @@ Implementación manual Modbus RTU sobre RS-485:
 |---|---|---|---|
 | `powerOn` | — | 650 | Arranque general |
 | `shutdown` | — | 651 | Parada general |
-| `setPower` | `{"value": X}` | 135 | Setpoint potencia activa (kW, −100..+100) |
-
-### bms
-STUB — CAN en modo `LISTEN_ONLY`. Loguea tramas y las publica como `can_0xXXX` para observación. Estructura lista para decodificación cuando se identifique el protocolo del BMS.
+| `setPower` | `{"value": X}` | 135 | Setpoint potencia activa (kW, −100..+100, escala 0.1 kW) |
 
 ### ems
-STUB — función `emsUpdate()` vacía con lógica propuesta comentada. Se activa cuando el equipo valide la estrategia de control.
 
-### display
-Módulo para LCD ST7789 1.14" via TFT_eSPI. **No integrado aún** — pendiente recepción del hardware. Muestra: estado del inversor, potencia inversor/red/carga, tensión y corriente DC, indicador de conexión MQTT.
+Stub con lógica propuesta comentada. Parámetros previstos:
+
+| Parámetro | Valor default | Descripción |
+|---|---|---|
+| `EMS_SOC_MIN` | 20% | No descargar por debajo |
+| `EMS_SOC_TARGET` | 90% | Cargar hasta aquí cuando no hay carga |
+| `EMS_MAX_DISCHARGE` | 20 kW | Límite de descarga |
+| `EMS_CHARGE_POWER` | 10 kW | Potencia de carga desde red |
+
+---
+
+## Tests unitarios
+
+Ubicación: `test/`. Se ejecutan en el host sin hardware con `pio test -e native`.
+
+| Suite | Cubre |
+|---|---|
+| `test_modbus` | CRC16, frame building, response parsing, escalas de registro |
+| `test_bms` | Decodificación de tramas CAN con valores reales del protocolo |
+| `test_ems` | Lógica de decisión EMS con mock de writeRegister |
+
+Los tests llaman directamente a las funciones `_core` — no duplican lógica. Un cambio en `modbus_core.cpp` o `bms_core.cpp` se refleja inmediatamente en los tests.
+
+> Durante el desarrollo se detectó con los tests un bug real: `setPower` usaba escala 0.01 (×100) en lugar de 0.1 (×10), lo que habría enviado setpoints 10× demasiado altos al inversor.
+
+---
+
+## Sketches de prueba de hardware
+
+Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un subsistema sin el resto.
+
+### test_mqtt
+Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y responde RPCs. Sin Modbus ni CAN. Útil para verificar credenciales y conectividad antes de conectar hardware.
+
+### test_display
+Cicla 3 pantallas cada 3 segundos con datos de ejemplo: estado del sistema, valores del inversor, valores del BMS. Sin WiFi ni Modbus. Útil para verificar la pantalla y el layout antes de integrarlo al firmware principal.
+
+### test_modbus_hw
+Lee registros reales del inversor y los imprime por Serial con valores escalados. Sin WiFi ni ThingsBoard.
+
+### test_can_hw
+Escucha el bus CAN e imprime todas las tramas recibidas en hex por Serial. Útil para verificar que el BMS transmite antes de implementar la decodificación.
+
+### test_dashboard
+Polling Modbus real + BMS CAN opcional → ThingsBoard. Telemetría pura, sin control ni RPC. BMS es opcional — si no hay CAN conectado simplemente no publica keys de batería. Útil para validar el dashboard de ThingsBoard con datos reales.
 
 ---
 
@@ -189,15 +293,29 @@ Módulo para LCD ST7789 1.14" via TFT_eSPI. **No integrado aún** — pendiente 
 Nunca subir al repo. Crear desde `credentials.h.example`.
 
 ### config.h — parámetros clave
-```cpp
-#define MODBUS_DEVICE_ID 1    // confirmar con DIP switch del inversor
-#define BMS_CAN_ADDR     1    // confirmar con configuración del BMS
-#define CAN_SPEED        TWAI_TIMING_CONFIG_250KBITS()  // ajustar según BMS
 
-#define POLL_MODBUS_MS   5000   // poll inversor
-#define PUBLISH_MS       10000  // publicación ThingsBoard
-#define VERIFY_INIT_MS   60000  // verificación config inversor
+```cpp
+#define MODBUS_DEVICE_ID 1      // confirmar con DIP switch del inversor
+#define RS485_DE_RE_PIN  5      // GPIO5 — NO usar GPIO4 (reservado LCD RST en Ideaspark)
+#define BMS_CAN_ADDR     1      // confirmar con configuración del BMS
+#define CAN_SPEED        TWAI_TIMING_CONFIG_250KBITS()
+
+#define POLL_MODBUS_MS   5000   // poll inversor cada 5s
+#define POLL_CAN_MS      1000   // poll BMS cada 1s
+#define PUBLISH_MS       10000  // publicación ThingsBoard cada 10s
+#define VERIFY_INIT_MS   60000  // verificación config inversor cada 60s
 ```
+
+---
+
+## Dependencias
+
+| Librería | Uso |
+|---|---|
+| PubSubClient (Nick O'Leary) | MQTT |
+| ArduinoJson (Benoit Blanchon) | JSON payload |
+| Adafruit ST7789 + Adafruit GFX | Display |
+| driver/twai.h | CAN bus (incluida en ESP32 Arduino core) |
 
 ---
 
@@ -205,50 +323,33 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 
 - Si el ESP32 falla, el inversor sigue operando con los últimos parámetros escritos
 - `verifyAndReinit()` restaura la config si el inversor se reinicia
-- El ESP32 tiene watchdog de hardware integrado (TWDT) — reinicia si el loop se bloquea
 - Reconexión automática de WiFi y MQTT en el loop
-- ⚠ Conocido: `connectMQTT()` puede bloquearse si el broker no responde — pendiente timeout explícito o migración a AsyncMqttClient
-
----
-
-## Dependencias
-
-| Librería | Autor | Instalación |
-|---|---|---|
-| PubSubClient | Nick O'Leary | Arduino Library Manager |
-| ArduinoJson | Benoit Blanchon | Arduino Library Manager |
-| TFT_eSPI | Bodmer | Arduino Library Manager (para display) |
-| driver/twai.h | Espressif | Incluida en ESP32 core ≥ 3.x |
-
-**ESP32 core:** 3.3.x o superior
+- ⚠ Conocido: `connectMQTT()` puede bloquearse si el broker no responde — pendiente timeout explícito
 
 ---
 
 ## TODO
 
-### Hardware pendiente
+### Hardware
+- Cablear MAX485 DE+RE a **GPIO5** (no GPIO4)
 - Confirmar dirección Modbus del inversor via DIP switch → `MODBUS_DEVICE_ID`
 - Confirmar dirección CAN del BMS → `BMS_CAN_ADDR`
-- Verificar firmware inversor soporta RTU V3.0 (reg 19 ≥ 30)
-- Recibir y conectar módulo LCD ideaspark ST7789 1.14"
-- Identificar modelo y protocolo CAN del BMS
+- Conseguir módulo CAN-TTL (SN65HVD230) para pruebas BMS
+- Verificar firmware inversor RTU ≥ V3.0 (reg 19 ≥ 30)
 
 ### Firmware
-- Implementar `pollCAN()` con protocolo real del BMS
-- Integrar `display.h/cpp` en `pcs_monitor.ino`
-- Implementar `emsUpdate()` — estrategia validada con el equipo:
-  - Batería primero: `setPower = min(load_p_kw, MAX_DISCHARGE)` cuando `SOC > SOC_MIN`
-  - Cargar batería desde red cuando no hay carga y `SOC < SOC_TARGET`
-- Agregar shared attributes ThingsBoard para configurar remotamente: `SOC_MIN`, `SOC_TARGET`, `MAX_DISCHARGE`, `GRID_LIMIT`, `CHARGE_POWER`
-- Resolver bloqueo de `connectMQTT()` con timeout explícito o AsyncMqttClient
-- Migrar a dual-core FreeRTOS (Core 0: MQTT/WiFi, Core 1: Modbus/CAN/EMS)
-- Migrar credenciales y parámetros a NVS para configuración sin reflashear
+- Integrar display en firmware de producción (`main.cpp` + `display.cpp`)
+- Activar y validar `emsUpdate()` con estrategia acordada
+- Agregar shared attributes ThingsBoard para configurar EMS remotamente sin reflashear
+- Resolver bloqueo de `connectMQTT()` con timeout explícito
+- Migrar a FreeRTOS dual-core (Core 0: MQTT/WiFi, Core 1: Modbus/CAN/EMS)
+- Agregar sketches `test_modbus_hw` y `test_can_hw` (estructura lista, contenido pendiente)
 
 ### ThingsBoard
+- Configurar dashboard con datos reales via `test_dashboard`
+- Agregar widgets RPC: botones powerOn/shutdown, slider setPower
 - Conectar rule chain de alarmas al Root Rule Chain
-- Agregar widgets RPC al dashboard: Action buttons (powerOn/shutdown), slider (setPower)
-- Agregar widget de alarmas activas al dashboard
 
 ### Investigación
-- Captura Wireshark del EMS del fabricante en modo **self-use + backup power** — es el modo más relevante para la topología actual (red + batería → carga, sin PV)
+- Captura Wireshark del EMS del fabricante en modo **self-use + backup power**
 - Verificar comportamiento de reg 353 en modo grid-tied vs off-grid
