@@ -21,13 +21,12 @@
 #include <ArduinoJson.h>
 
 // ---------------------------------------------------------------------------
-// Configuration — edit these
+// Configuration
 // ---------------------------------------------------------------------------
-#define WIFI_SSID       "TU_SSID"
-#define WIFI_PASSWORD   "TU_PASSWORD"
-#define TB_HOST         "demo.thingsboard.io"
+#include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
+#define TB_HOST         "thingsboard.cloud"
 #define TB_PORT         1883
-#define TB_TOKEN        "TU_ACCESS_TOKEN"
+#define TB_TOKEN        TB_ACCESS_TOKEN
 
 #define PUBLISH_INTERVAL_MS 5000
 
