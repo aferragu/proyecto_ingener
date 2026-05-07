@@ -9,19 +9,24 @@
 //   4. Publishes all telemetry to ThingsBoard
 //   5. No control, no RPC, no EMS — pure read and forward
 //
+// Uses lib/ modules: modbus_core, inverter_core, bms_core — same as production.
+// Changing the protocol in lib/ is reflected here automatically.
+//
 // Serial at 115200 shows every poll cycle and publish result.
 //
 // Wiring:
-//   MAX485: GPIO17→DI, GPIO16→RO, GPIO4→DE+RE, A/B→inverter RS-485
-//   CAN:    GPIO21→TX, GPIO22→RX (optional — skip if no converter)
+//   MAX485: GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485
+//   CAN:    GPIO21→TX, GPIO22→RX (optional — set CAN_ENABLED false if not connected)
 //
-// Credentials: fill in below.
+// Credentials: include/credentials.h
 // =============================================================================
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include "credentials.h"
+#include "config.h"
 #include "modbus_core.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
@@ -32,27 +37,14 @@
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
-#include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
 #define TB_HOST          "thingsboard.cloud"
 #define TB_PORT          1883
 #define TB_TOKEN         TB_ACCESS_TOKEN
 
-// Modbus
-#define RS485_BAUD       115200
-#define RS485_RX_PIN     16
-#define RS485_TX_PIN     17
-#define RS485_DE_RE_PIN  4
-#define MODBUS_ID        1
+// CAN — set to false if no CAN converter connected
+#define CAN_ENABLED      false
 
-// CAN / BMS — set to false if no CAN converter connected
-#define CAN_ENABLED      true
-#define CAN_TX_PIN       GPIO_NUM_21
-#define CAN_RX_PIN       GPIO_NUM_22
-#define BMS_ADDR         1
-
-// Intervals
-#define POLL_INTERVAL_MS   10000
-#define PUBLISH_INTERVAL_MS 10000
+#define POLL_INTERVAL_MS 10000
 
 // ---------------------------------------------------------------------------
 // Globals
@@ -62,16 +54,16 @@ PubSubClient mqtt(wifiClient);
 BmsData      bmsData = {};
 
 // ---------------------------------------------------------------------------
-// Modbus helpers (minimal — no full modbus.cpp dependency)
+// Modbus — uses modbus_core from lib/, same UART setup as production
 // ---------------------------------------------------------------------------
 bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     uint8_t frame[8];
-    modbus_build_read(frame, MODBUS_ID, startReg, count);
+    modbus_build_read(frame, MODBUS_DEVICE_ID, startReg, count);
 
     digitalWrite(RS485_DE_RE_PIN, HIGH);
     delayMicroseconds(50);
-    Serial2.write(frame, 8);
-    Serial2.flush();
+    RS485_SERIAL.write(frame, 8);
+    RS485_SERIAL.flush();
     delayMicroseconds(50);
     digitalWrite(RS485_DE_RE_PIN, LOW);
 
@@ -79,11 +71,11 @@ bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     uint32_t t = millis();
     uint8_t idx = 0;
     while ((millis() - t) < 50 && idx == 0)
-        if (Serial2.available()) rxBuf[idx++] = Serial2.read();
+        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
     if (idx == 0) return false;
     t = millis();
     while ((millis() - t) < 20)
-        if (Serial2.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = Serial2.read();
+        if (RS485_SERIAL.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
 
     return modbus_parse_read(rxBuf, idx, count, out);
 }
@@ -114,13 +106,12 @@ void connectMQTT() {
 }
 
 // ---------------------------------------------------------------------------
-// Poll inverter
+// Poll inverter — uses inverter_core from lib/
 // ---------------------------------------------------------------------------
 void pollInverter(JsonDocument& doc) {
     int16_t raw[26];
 
-    // Status (reg 32)
-    if (modbusRead(32, 1, raw)) {
+    if (modbusRead(REG_STATUS, REG_STATUS_COUNT, raw)) {
         StatusData s; inverter_parse_status(raw, s);
         doc["fault"]     = s.fault;
         doc["alarm"]     = s.alarm;
@@ -132,8 +123,7 @@ void pollInverter(JsonDocument& doc) {
                       s.running, s.grid_tied, s.fault);
     } else Serial.println("[Modbus] FAIL: reg 32 (status)");
 
-    // AC (reg 100–125)
-    if (modbusRead(100, 26, raw)) {
+    if (modbusRead(REG_AC_START, REG_AC_COUNT, raw)) {
         AcData ac; inverter_parse_ac(raw, ac);
         doc["freq_hz"]    = ac.freq_hz;
         doc["v_a"]        = ac.v_a;
@@ -152,8 +142,7 @@ void pollInverter(JsonDocument& doc) {
                       ac.v_a, ac.p_inv, ac.pf_total);
     } else Serial.println("[Modbus] FAIL: reg 100 (AC)");
 
-    // DC (reg 141–143)
-    if (modbusRead(141, 3, raw)) {
+    if (modbusRead(REG_DC_START, REG_DC_COUNT, raw)) {
         DcData dc; inverter_parse_dc(raw, dc);
         doc["dc_power_kw"]  = dc.power_kw;
         doc["dc_voltage_v"] = dc.voltage_v;
@@ -161,10 +150,9 @@ void pollInverter(JsonDocument& doc) {
         Serial.printf("[Modbus] DC: %.1fV %.2fkW\n", dc.voltage_v, dc.power_kw);
     } else Serial.println("[Modbus] FAIL: reg 141 (DC)");
 
-    // Grid power (reg 170–179 + 192)
-    if (modbusRead(170, 10, raw)) {
-        int16_t grid_p_raw = 0;
-        modbusRead(192, 1, &grid_p_raw);
+    int16_t grid_p_raw = 0;
+    if (modbusRead(REG_GRID_START, REG_GRID_COUNT, raw)) {
+        modbusRead(REG_GRID_POWER, 1, &grid_p_raw);
         GridData g; inverter_parse_grid(raw, grid_p_raw, g);
         doc["grid_freq_hz"] = g.freq_hz;
         doc["grid_v_a"]     = g.v_a;
@@ -174,8 +162,7 @@ void pollInverter(JsonDocument& doc) {
         Serial.printf("[Modbus] Grid: %.1fHz %.2fkW\n", g.freq_hz, g.p_kw);
     } else Serial.println("[Modbus] FAIL: reg 170 (grid)");
 
-    // Load (reg 200–213, V3.0+)
-    if (modbusRead(200, 14, raw)) {
+    if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
         LoadData l; inverter_parse_load(raw, l);
         doc["load_p_kw"]  = l.p_total;
         doc["load_s_kva"] = l.s_total;
@@ -184,7 +171,7 @@ void pollInverter(JsonDocument& doc) {
 }
 
 // ---------------------------------------------------------------------------
-// Poll BMS CAN
+// Poll BMS CAN — uses bms_core from lib/
 // ---------------------------------------------------------------------------
 void pollBMS(JsonDocument& doc) {
     if (!CAN_ENABLED) return;
@@ -192,7 +179,7 @@ void pollBMS(JsonDocument& doc) {
     twai_message_t msg;
     int count = 0;
     while (twai_receive(&msg, pdMS_TO_TICKS(10)) == ESP_OK) {
-        bms_decode(bmsData, BMS_ADDR, msg.identifier, msg.data);
+        bms_decode(bmsData, BMS_CAN_ADDR, msg.identifier, msg.data);
         count++;
     }
 
@@ -201,18 +188,18 @@ void pollBMS(JsonDocument& doc) {
         return;
     }
 
-    doc["bms_soc_pct"]           = bmsData.soc_pct;
-    doc["bms_soh_pct"]           = bmsData.soh_pct;
-    doc["bms_voltage_v"]         = bmsData.voltage_v;
-    doc["bms_current_a"]         = bmsData.current_a;
-    doc["bms_temperature_c"]     = bmsData.temperature_c;
-    doc["bms_max_charge_a"]      = bmsData.max_charge_a;
-    doc["bms_max_discharge_a"]   = bmsData.max_discharge_a;
-    doc["bms_charge_forbidden"]  = bmsData.charge_forbidden  ? 1 : 0;
+    doc["bms_soc_pct"]            = bmsData.soc_pct;
+    doc["bms_soh_pct"]            = bmsData.soh_pct;
+    doc["bms_voltage_v"]          = bmsData.voltage_v;
+    doc["bms_current_a"]          = bmsData.current_a;
+    doc["bms_temperature_c"]      = bmsData.temperature_c;
+    doc["bms_max_charge_a"]       = bmsData.max_charge_a;
+    doc["bms_max_discharge_a"]    = bmsData.max_discharge_a;
+    doc["bms_charge_forbidden"]   = bmsData.charge_forbidden   ? 1 : 0;
     doc["bms_discharge_forbidden"]= bmsData.discharge_forbidden ? 1 : 0;
-    doc["bms_fault"]             = bmsData.fault;
-    doc["bms_alarm"]             = bmsData.alarm;
-    doc["bms_status"]            = bmsData.status;
+    doc["bms_fault"]              = bmsData.fault;
+    doc["bms_alarm"]              = bmsData.alarm;
+    doc["bms_status"]             = bmsData.status;
 
     Serial.printf("[BMS] SOC=%d%% V=%.1fV I=%.1fA T=%.1f°C (%d frames)\n",
                   bmsData.soc_pct, bmsData.voltage_v,
@@ -227,16 +214,16 @@ void setup() {
     delay(500);
     Serial.println("\n[Boot] test_dashboard starting...");
 
-    // RS-485
+    // RS-485 — uses pins from config.h
     pinMode(RS485_DE_RE_PIN, OUTPUT);
     digitalWrite(RS485_DE_RE_PIN, LOW);
-    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
     Serial.println("[Boot] RS-485 ready");
 
-    // CAN
+    // CAN — uses speed and pins from config.h
     if (CAN_ENABLED) {
         twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_NORMAL);
-        twai_timing_config_t  t = TWAI_TIMING_CONFIG_250KBITS();
+        twai_timing_config_t  t = CAN_SPEED;
         twai_filter_config_t  f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
         if (twai_driver_install(&g, &t, &f) == ESP_OK && twai_start() == ESP_OK)
             Serial.println("[Boot] CAN ready");
@@ -259,13 +246,14 @@ void loop() {
     if (millis() - lastPoll >= POLL_INTERVAL_MS) {
         lastPoll = millis();
 
-        StaticJsonDocument<2048> doc;
+        JsonDocument doc;
         pollInverter(doc);
         pollBMS(doc);
 
         char payload[2048];
         serializeJson(doc, payload, sizeof(payload));
+        Serial.printf("[MQTT] Payload: %d bytes\n", strlen(payload));
         bool ok = mqtt.publish("v1/devices/me/telemetry", payload);
-        Serial.printf("[MQTT] Publish %s (%d bytes)\n", ok ? "OK" : "FAIL", strlen(payload));
+        Serial.printf("[MQTT] Publish %s\n", ok ? "OK" : "FAIL");
     }
 }
