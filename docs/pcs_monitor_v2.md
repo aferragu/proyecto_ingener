@@ -30,7 +30,7 @@ esp32/
 | `test_display` | `pio run -e test_display -t upload` | Prueba pantalla ST7789 aislada |
 | `test_mqtt` | `pio run -e test_mqtt -t upload` | Prueba WiFi + ThingsBoard aislada |
 | `test_tb` | `pio run -e test_tb -t upload` | Dashboard simulado: pantalla + ThingsBoard |
-| `test_modbus_hw` | `pio run -e test_modbus_hw -t upload` | Prueba Modbus real → Serial |
+| `test_set_power` | `pio run -e test_set_power -t upload` | Prueba setPower via shared attribute |
 | `test_can_hw` | `pio run -e test_can_hw -t upload` | Prueba CAN / BMS → Serial |
 | `test_dashboard` | `pio run -e test_dashboard -t upload` | Hardware real → pantalla + ThingsBoard |
 
@@ -278,6 +278,7 @@ Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un
 | `test_tb` | ✓ simulado | ✓ simulado | — | — | Construir y validar dashboard |
 | `test_modbus_hw` | — | — | ✓ real | — | Verificar comunicación con inversor |
 | `test_can_hw` | — | — | — | ✓ real | Verificar comunicación con BMS |
+| `test_set_power` | — | ✓ real | ✓ real | — | Probar control de potencia end-to-end |
 | `test_dashboard` | ✓ real | ✓ real | flag | flag | Integración completa con HW real |
 
 ### test_display
@@ -288,6 +289,20 @@ Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y respond
 
 ### test_tb
 Combina pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos los keys que el firmware real publica. Usar para construir y ajustar el dashboard de ThingsBoard sin necesitar hardware. La pantalla cicla las mismas 3 pantallas mostrando los valores simulados y el estado de WiFi/MQTT.
+
+### test_set_power
+Prueba el control de potencia end-to-end: ThingsBoard knob → shared attribute `set_power` → reg 135 inversor → telemetría de confirmación.
+
+Al arrancar lee el valor actual de `set_power` desde ThingsBoard y lo aplica. Cuando el knob cambia, el ESP32 recibe la notificación via MQTT y escribe inmediatamente en reg 135.
+
+Publica cada 5s:
+- `set_power_requested` — valor recibido desde el knob
+- `set_power_active` — valor leído de vuelta del reg 135 (confirmación)
+- `p_inv_kw` — potencia AC de salida
+- `dc_power_kw` — potencia DC
+- `dc_current_a` — corriente DC
+
+Graficar `set_power_requested` vs `set_power_active` permite ver el lag y confirmar que el inversor responde. `dc_current_a` es el indicador más sensible para ver si la batería está cargando o descargando.
 
 ### test_modbus_hw
 Conecta al inversor via RS-485 y vuelca todos los bloques de registros por Serial cada 5 segundos con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Sin WiFi ni display. Si todos los bloques fallan, el boot imprime exactamente qué verificar.
