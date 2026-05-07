@@ -203,6 +203,17 @@ void pollAndPublish() {
         anyOk = true;
     } else Serial.println("[Poll] FAIL: reg 100 (AC)");
 
+    // Read Grid (reg 170–179 + 192)
+    int16_t grid_raw[10];
+    int16_t grid_p_raw = 0;
+    if (modbusRead(REG_GRID_START, REG_GRID_COUNT, grid_raw) &&
+        modbusRead(REG_GRID_POWER, 1, &grid_p_raw)) {
+        GridData g; inverter_parse_grid(grid_raw, grid_p_raw, g);
+        doc["grid_p_kw"] = g.p_kw;
+        Serial.printf("[Poll] Grid: %.2fkW\n", g.p_kw);
+        anyOk = true;
+    } else Serial.println("[Poll] FAIL: reg 170/192 (grid)");
+
     // Read Load (reg 200–213, V3.0+)
     int16_t load_raw[14];
     if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
