@@ -122,7 +122,7 @@ Estos headers son la única fuente de verdad para las conversiones de valores cr
 ```
 Boot
  ├── RS-485 init (UART2, 115200 bps, 8N1)
- ├── CAN init (TWAI, 250 kbps)
+ ├── CAN init (TWAI, 500 kbps, 29-bit extended)
  ├── WiFi connect
  ├── MQTT connect + subscribe RPC
  ├── readFirmwareVersion() → publica atributos ThingsBoard
@@ -198,24 +198,29 @@ Implementación manual Modbus RTU sobre RS-485:
 
 ### bms / bms_core
 
-Protocolo: Pylontech High Voltage CAN Bus V1.24, 250 kbps, IDs de 11 bits.
+Hardware: **LWS 16S300A** (Huizhou LWS New Energy Technology), not Pylontech. The CAN protocol is compatible with the Pylontech High Voltage V1.24 spec.
+
+Protocolo confirmado por captura CANalyzer:
+- **500 kbps**, tramas extendidas **29 bits**
+- **Byte order: LSB first** (little-endian), confirmado por el manual
+- Dirección configurada en **panel frontal** — actualmente addr=2, `BMS_CAN_ADDR` debe actualizarse antes de conectar
 
 | CAN ID | Contenido |
 |---|---|
-| 0x421+addr | Tensión pack, corriente, temperatura, SOC, SOH |
-| 0x422+addr | Límites carga/descarga (tensión y corriente máxima) |
-| 0x425+addr | Estado, fault, alarm, protection |
-| 0x428+addr | Flags forbidden, SOE |
+| 0x4210+addr | Tensión pack, corriente, temperatura, SOC, SOH |
+| 0x4220+addr | Límites carga/descarga (tensión y corriente máxima) |
+| 0x4250+addr | Estado, fault, alarm, protection |
+| 0x4280+addr | Flags forbidden, SOE |
 
 **Factores de escala** (`bms_scales.h`):
 
 | Campo | Scale | Offset |
 |---|---|---|
-| Tensión (0x421) | 0.1 V | 0 |
-| Corriente (0x421, 0x422) | 0.1 A | −3000 A |
-| Temperatura (0x421) | 0.1 °C | −100 °C |
-| Tensión de corte (0x422) | 0.1 V | 0 |
-| Forbidden mark (0x428) | — | 0xAA = forbidden |
+| Tensión (0x4210) | 0.1 V | 0 |
+| Corriente (0x4210, 0x4220) | 0.1 A | −3000 A |
+| Temperatura (0x4210) | 0.1 °C | −100 °C |
+| Tensión de corte (0x4220) | 0.1 V | 0 |
+| Forbidden mark (0x4280) | — | 0xAA = forbidden |
 
 ### mqtt
 
@@ -298,7 +303,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 #define MODBUS_DEVICE_ID 1      // confirmar con DIP switch del inversor
 #define RS485_DE_RE_PIN  5      // GPIO5 — NO usar GPIO4 (reservado LCD RST en Ideaspark)
 #define BMS_CAN_ADDR     1      // confirmar con configuración del BMS
-#define CAN_SPEED        TWAI_TIMING_CONFIG_250KBITS()
+#define CAN_SPEED        TWAI_TIMING_CONFIG_500KBITS()
 
 #define POLL_MODBUS_MS   5000   // poll inversor cada 5s
 #define POLL_CAN_MS      1000   // poll BMS cada 1s
@@ -333,7 +338,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 ### Hardware
 - Cablear MAX485 DE+RE a **GPIO5** (no GPIO4)
 - Confirmar dirección Modbus del inversor via DIP switch → `MODBUS_DEVICE_ID`
-- Confirmar dirección CAN del BMS → `BMS_CAN_ADDR`
+- `BMS_CAN_ADDR` actualmente en 1 — cambiar a 2 cuando se conecte el CAN converter (dirección configurada en panel frontal)
 - Conseguir módulo CAN-TTL (SN65HVD230) para pruebas BMS
 - Verificar firmware inversor RTU ≥ V3.0 (reg 19 ≥ 30)
 
@@ -344,6 +349,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 - Resolver bloqueo de `connectMQTT()` con timeout explícito
 - Migrar a FreeRTOS dual-core (Core 0: MQTT/WiFi, Core 1: Modbus/CAN/EMS)
 - Agregar sketches `test_modbus_hw` y `test_can_hw` (estructura lista, contenido pendiente)
+- ⚠ Renombrar `bms_current_a` → `bms_current` en telemetría — el sufijo `_a` es ambiguo (puede confundirse con fase A en el lado AC)
 
 ### ThingsBoard
 - Configurar dashboard con datos reales via `test_dashboard`
