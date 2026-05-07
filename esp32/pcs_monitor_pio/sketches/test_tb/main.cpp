@@ -174,6 +174,8 @@ void publishTelemetry() {
 
     char payload[2048];
     serializeJson(doc, payload, sizeof(payload));
+    Serial.printf("[MQTT] Payload size: %d bytes\n", strlen(payload));
+
     bool ok = mqtt.publish("v1/devices/me/telemetry", payload);
     Serial.printf("[MQTT] Publish %s — SOC=%d%% P_inv=%.1fkW Grid=%.1fkW\n",
                   ok ? "OK" : "FAIL", (int)sim.soc, sim.p_inv, sim.grid_p);
