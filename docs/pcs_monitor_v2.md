@@ -27,11 +27,12 @@ esp32/
 |---|---|---|
 | `esp32dev` | `pio run -e esp32dev -t upload` | Firmware de producción |
 | `native` | `pio test -e native` | Tests unitarios en el host (sin hardware) |
-| `test_mqtt` | `pio run -e test_mqtt -t upload` | Prueba WiFi + ThingsBoard |
-| `test_display` | `pio run -e test_display -t upload` | Prueba pantalla ST7789 |
-| `test_modbus_hw` | `pio run -e test_modbus_hw -t upload` | Prueba Modbus real |
-| `test_can_hw` | `pio run -e test_can_hw -t upload` | Prueba CAN / BMS |
-| `test_dashboard` | `pio run -e test_dashboard -t upload` | Telemetría real → ThingsBoard |
+| `test_display` | `pio run -e test_display -t upload` | Prueba pantalla ST7789 aislada |
+| `test_mqtt` | `pio run -e test_mqtt -t upload` | Prueba WiFi + ThingsBoard aislada |
+| `test_tb` | `pio run -e test_tb -t upload` | Dashboard simulado: pantalla + ThingsBoard |
+| `test_modbus_hw` | `pio run -e test_modbus_hw -t upload` | Prueba Modbus real → Serial |
+| `test_can_hw` | `pio run -e test_can_hw -t upload` | Prueba CAN / BMS → Serial |
+| `test_dashboard` | `pio run -e test_dashboard -t upload` | Hardware real → pantalla + ThingsBoard |
 
 ---
 
@@ -268,22 +269,38 @@ Los tests llaman directamente a las funciones `_core` — no duplican lógica. U
 
 ## Sketches de prueba de hardware
 
-Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un subsistema sin el resto.
+Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un subsistema sin el resto. Todos usan `config.h` para pines y direcciones, y `credentials.h` para WiFi/token cuando aplica. La lógica de protocolo viene de `lib/` — cambiar `modbus_core`, `inverter_core` o `bms_core` se refleja en todos automáticamente.
 
-### test_mqtt
-Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y responde RPCs. Sin Modbus ni CAN. Útil para verificar credenciales y conectividad antes de conectar hardware.
+| Sketch | Display | WiFi/TB | Modbus | CAN | Propósito |
+|---|---|---|---|---|---|
+| `test_display` | ✓ dummy | — | — | — | Verificar pantalla y layout |
+| `test_mqtt` | — | ✓ dummy | — | — | Verificar WiFi y ThingsBoard |
+| `test_tb` | ✓ simulado | ✓ simulado | — | — | Construir y validar dashboard |
+| `test_modbus_hw` | — | — | ✓ real | — | Verificar comunicación con inversor |
+| `test_can_hw` | — | — | — | ✓ real | Verificar comunicación con BMS |
+| `test_dashboard` | ✓ real | ✓ real | flag | flag | Integración completa con HW real |
 
 ### test_display
-Cicla 3 pantallas cada 3 segundos con datos de ejemplo: estado del sistema, valores del inversor, valores del BMS. Sin WiFi ni Modbus. Útil para verificar la pantalla y el layout antes de integrarlo al firmware principal.
+Cicla 3 pantallas cada 3 segundos con datos hardcodeados: Status (indicadores), Power Flow, Battery. Sin WiFi ni hardware. Útil para verificar el cableado del display y el layout antes de integrar datos reales.
+
+### test_mqtt
+Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y responde RPCs. Sin Modbus ni CAN ni display. Útil para verificar credenciales y conectividad de red de forma aislada.
+
+### test_tb
+Combina pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos los keys que el firmware real publica. Usar para construir y ajustar el dashboard de ThingsBoard sin necesitar hardware. La pantalla cicla las mismas 3 pantallas mostrando los valores simulados y el estado de WiFi/MQTT.
 
 ### test_modbus_hw
-Lee registros reales del inversor y los imprime por Serial con valores escalados. Sin WiFi ni ThingsBoard.
+Conecta al inversor via RS-485 y vuelca todos los bloques de registros por Serial cada 5 segundos con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Sin WiFi ni display. Si todos los bloques fallan, el boot imprime exactamente qué verificar.
 
 ### test_can_hw
-Escucha el bus CAN e imprime todas las tramas recibidas en hex por Serial. Útil para verificar que el BMS transmite antes de implementar la decodificación.
+Escucha el bus CAN en modo normal (con ACK) e imprime los primeros 50 frames en hex crudo. A partir de ahí imprime un resumen decodificado cada vez que llega el frame principal del BMS (`0x4210+addr`). Imprime decode completo al primer frame válido. Sin WiFi ni display.
 
 ### test_dashboard
-Polling Modbus real + BMS CAN opcional → ThingsBoard. Telemetría pura, sin control ni RPC. BMS es opcional — si no hay CAN conectado simplemente no publica keys de batería. Útil para validar el dashboard de ThingsBoard con datos reales.
+Firmware de integración — el más cercano al firmware de producción pero sin control ni RPC. Dos flags independientes:
+- `MODBUS_ENABLED` — lee inversor via RS-485
+- `CAN_ENABLED` — lee BMS via CAN
+
+Si un flag está en 0, esa fuente se omite y el punto correspondiente en la pantalla queda rojo. No se publican datos simulados en su lugar — lo que no funciona se ve claramente. Útil para validar el hardware en etapas: primero solo Modbus, después agregar CAN cuando llegue el converter.
 
 ---
 
@@ -348,7 +365,6 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 - Agregar shared attributes ThingsBoard para configurar EMS remotamente sin reflashear
 - Resolver bloqueo de `connectMQTT()` con timeout explícito
 - Migrar a FreeRTOS dual-core (Core 0: MQTT/WiFi, Core 1: Modbus/CAN/EMS)
-- Agregar sketches `test_modbus_hw` y `test_can_hw` (estructura lista, contenido pendiente)
 - ⚠ Renombrar `bms_current_a` → `bms_current` en telemetría — el sufijo `_a` es ambiguo (puede confundirse con fase A en el lado AC)
 
 ### ThingsBoard
