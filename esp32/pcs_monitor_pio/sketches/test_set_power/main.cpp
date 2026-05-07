@@ -105,8 +105,8 @@ bool modbusWrite(uint16_t reg, int16_t value) {
 // Apply setpoint to inverter
 // ---------------------------------------------------------------------------
 void applySetPower(float kw) {
-    // Clamp to inverter range
-    kw = constrain(kw, -100.0f, 100.0f);
+    // Clamp to testbed range — change to -100/100 for production
+    kw = constrain(kw, -2.0f, 2.0f);
 
     int16_t raw = (int16_t)(kw / SCALE_SET_POWER_KW);
     bool ok = modbusWrite(REG_SET_POWER, raw);
