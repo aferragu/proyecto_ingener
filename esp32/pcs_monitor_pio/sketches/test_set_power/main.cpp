@@ -203,6 +203,15 @@ void pollAndPublish() {
         anyOk = true;
     } else Serial.println("[Poll] FAIL: reg 100 (AC)");
 
+    // Read Load (reg 200–213, V3.0+)
+    int16_t load_raw[14];
+    if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
+        LoadData l; inverter_parse_load(load_raw, l);
+        doc["load_p_kw"] = l.p_total;
+        Serial.printf("[Poll] Load: %.2fkW\n", l.p_total);
+        anyOk = true;
+    } else Serial.println("[Poll] FAIL: reg 200 (load)");
+
     if (anyOk) {
         char payload[512];
         serializeJson(doc, payload, sizeof(payload));
