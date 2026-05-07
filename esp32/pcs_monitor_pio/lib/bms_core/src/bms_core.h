@@ -33,8 +33,13 @@ struct BmsData {
     bool     valid;               // true once at least one 0x421 message received
 };
 
-// Decode one CAN frame (11-bit id, 8 data bytes) into bms.
-// bms_addr is the BMS address from config (1-15).
+// Decode one CAN frame (29-bit extended id, 8 data bytes) into bms.
+// bms_addr is the BMS address (1-15, set on front panel).
+// Frame IDs (29-bit extended, LSB byte order, 500kbps):
+//   0x4210+addr — pack voltage, current, temperature, SOC, SOH
+//   0x4220+addr — charge/discharge voltage and current limits
+//   0x4250+addr — status, fault, alarm, protection
+//   0x4280+addr — forbidden flags, SOE
 // Call repeatedly as frames arrive — each ID updates a different field group.
 void bms_decode(BmsData& bms, uint8_t bms_addr,
                 uint32_t can_id, const uint8_t* data);

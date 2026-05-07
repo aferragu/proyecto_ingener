@@ -23,7 +23,7 @@
 // CAN / BMS
 #define CAN_TX_PIN       GPIO_NUM_21
 #define CAN_RX_PIN       GPIO_NUM_22
-#define CAN_SPEED        TWAI_TIMING_CONFIG_250KBITS()
+#define CAN_SPEED        TWAI_TIMING_CONFIG_500KBITS()  // confirmed 500kbps from CANalyzer capture
 #define BMS_CAN_ADDR     1      // Dirección del BMS (1-15), embebida en CAN ID
 
 // LED de status — GPIO2 (LED integrado NodeMCU, activo en LOW)
