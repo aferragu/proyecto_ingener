@@ -38,6 +38,7 @@ void readFirmwareVersion(PubSubClient& mqtt) {
 void inverterInit() {
     Serial.println("[Init] Configurando inversor...");
     inverter_run_init(writeRegister, readRegisters);
+    Serial.println("[Init] Listo.");
 }
 
 void verifyAndReinit() {

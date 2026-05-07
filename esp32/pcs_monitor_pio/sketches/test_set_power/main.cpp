@@ -247,6 +247,7 @@ void setup() {
 
     Serial.println("[Boot] Running inverter init sequence...");
     inverter_run_init(modbusWrite, modbusRead);
+    Serial.println("[Boot] Inverter init done.");
 
     connectWiFi();
     connectMQTT();
