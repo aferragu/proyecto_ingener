@@ -37,20 +37,7 @@ void readFirmwareVersion(PubSubClient& mqtt) {
 
 void inverterInit() {
     Serial.println("[Init] Configurando inversor...");
-    uint8_t count;
-    const InitCmd* seq = inverter_init_sequence(&count);
-    for (uint8_t i = 0; i < count; i++) {
-        bool ok = writeRegister(seq[i].reg, seq[i].val);
-        Serial.printf("[Init] reg %d (%s): %s\n", seq[i].reg, seq[i].name, ok ? "OK" : "FAIL");
-        delay(100);
-    }
-    // reg 873: anti-backflow — read-modify-write
-    int16_t cur873 = 0;
-    readRegisters(REG_ANTI_BACKFLOW, 1, &cur873);
-    int16_t newVal = cur873 | 0x01;
-    bool ok = writeRegister(REG_ANTI_BACKFLOW, newVal);
-    Serial.printf("[Init] reg 873 (Anti-backflow, val=0x%04X): %s\n", (uint16_t)newVal, ok ? "OK" : "FAIL");
-    Serial.println("[Init] Listo.");
+    inverter_run_init(writeRegister, readRegisters);
 }
 
 void verifyAndReinit() {

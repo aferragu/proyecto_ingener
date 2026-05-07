@@ -73,6 +73,10 @@ struct InitCmd {
     const char* name;
 };
 
+// Function pointer types for hardware-independent init
+typedef bool (*WriteRegFn)(uint16_t reg, int16_t value);
+typedef bool (*ReadRegFn)(uint16_t reg, uint16_t count, int16_t* out);
+
 // Parse raw registers from readRegisters() into typed structs.
 // raw[] must have at least the count passed to readRegisters().
 void inverter_parse_ac    (const int16_t* raw, AcData&     out);
@@ -85,3 +89,7 @@ void inverter_parse_status(const int16_t* raw, StatusData& out);
 // Caller must NOT write REG_ANTI_BACKFLOW (873) from this table —
 // that one requires a read-modify-write and is handled separately.
 const InitCmd* inverter_init_sequence(uint8_t* count_out);
+
+// Run the full init sequence using the provided read/write functions.
+// Prints progress to Serial. Safe to call from any sketch or firmware.
+void inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn);

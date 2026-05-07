@@ -244,6 +244,9 @@ void setup() {
     RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
     Serial.println("[Boot] RS-485 ready");
 
+    Serial.println("[Boot] Running inverter init sequence...");
+    inverter_run_init(modbusWrite, modbusRead);
+
     connectWiFi();
     connectMQTT();
 
