@@ -1,66 +1,220 @@
 // =============================================================================
-// test_tb — Simulated telemetry → ThingsBoard
+// test_tb — Simulated telemetry → ThingsBoard + ST7789 display
 //
-// Purpose: build and arrange the ThingsBoard dashboard without needing
-// the inverter or BMS connected. Sends all keys the real firmware sends,
-// with realistic values that vary slowly over time.
+// What it does:
+//   1. Connects WiFi and ThingsBoard
+//   2. Sends all telemetry keys the real firmware will send, with slowly
+//      drifting realistic values — use this to build the ThingsBoard dashboard
+//   3. Cycles the ST7789 display through 3 screens every 3s showing the same
+//      simulated data — use this to build and validate the display layout
 //
 // No Modbus, no CAN, no hardware required beyond WiFi.
-// Credentials: include/credentials.h (WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN)
+//
+// Pin mapping (Ideaspark ESP32 1.14" ST7789):
+//   GPIO23→MOSI, GPIO18→SCLK, GPIO15→CS, GPIO2→DC, GPIO4→RST, GPIO32→BLK
+//
+// Credentials: fill in WIFI_SSID, WIFI_PASSWORD, TB_TOKEN below.
 // =============================================================================
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include "credentials.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7789.h>
+#include <SPI.h>
 
+// ---------------------------------------------------------------------------
+// Credentials — edit these
+// ---------------------------------------------------------------------------
+#define WIFI_SSID        "TU_SSID"
+#define WIFI_PASSWORD    "TU_PASSWORD"
 #define TB_HOST          "thingsboard.cloud"
 #define TB_PORT          1883
-#define TB_TOKEN         TB_ACCESS_TOKEN
-#define PUBLISH_INTERVAL_MS 5000
+#define TB_TOKEN         "TU_ACCESS_TOKEN"
+
+// ---------------------------------------------------------------------------
+// Display pins (Ideaspark hardwired)
+// ---------------------------------------------------------------------------
+#define LCD_MOSI  23
+#define LCD_SCLK  18
+#define LCD_CS    15
+#define LCD_DC     2
+#define LCD_RST    4
+#define LCD_BLK   32
+#define SCREEN_W  240
+#define SCREEN_H  135
+
+// ---------------------------------------------------------------------------
+// Intervals
+// ---------------------------------------------------------------------------
+#define PUBLISH_INTERVAL_MS  5000
+#define DISPLAY_INTERVAL_MS  3000
+
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
+#define C_BG      0x0000   // black
+#define C_TITLE   0x07FF   // cyan
+#define C_LABEL   0x8410   // grey
+#define C_VALUE   0xFFFF   // white
+#define C_OK      0x07E0   // green
+#define C_WARN    0xFFE0   // yellow
+#define C_FAULT   0xF800   // red
 
 // ---------------------------------------------------------------------------
 // Globals
 // ---------------------------------------------------------------------------
-WiFiClient   wifiClient;
-PubSubClient mqtt(wifiClient);
+WiFiClient         wifiClient;
+PubSubClient       mqtt(wifiClient);
+Adafruit_ST7789    tft = Adafruit_ST7789(LCD_CS, LCD_DC, LCD_RST);
+
+bool wifiOk  = false;
+bool mqttOk  = false;
 
 // ---------------------------------------------------------------------------
-// Simulated state — drifts slowly to make widgets feel alive
+// Simulated state
 // ---------------------------------------------------------------------------
-struct SimState {
-    float    soc        = 75.0f;    // %
-    float    bms_v      = 496.0f;   // V
-    float    bms_i      = 0.0f;     // A
-    float    bms_temp   = 24.0f;    // °C
-    float    p_inv      = 12.0f;    // kW
-    float    grid_p     = -3.0f;    // kW (negative = exporting)
-    float    load_p     = 9.0f;     // kW
-    float    freq       = 50.0f;    // Hz
-    float    v_phase    = 231.0f;   // V
-    float    pf         = 0.98f;
-    bool     running    = true;
-    bool     grid_tied  = true;
+struct Sim {
+    float soc       = 75.0f;
+    float bms_v     = 496.0f;
+    float bms_i     = 0.0f;
+    float bms_temp  = 24.0f;
+    float p_inv     = 12.0f;
+    float grid_p    = 3.0f;
+    float load_p    = 9.0f;
+    float freq      = 50.0f;
+    float v_phase   = 231.0f;
+    float pf        = 0.98f;
 } sim;
 
-// Small random drift within bounds
-float drift(float val, float step, float lo, float hi) {
-    val += (random(-100, 100) / 100.0f) * step;
-    return constrain(val, lo, hi);
+float drift(float v, float step, float lo, float hi) {
+    v += (random(-100, 100) / 100.0f) * step;
+    return constrain(v, lo, hi);
 }
 
 void updateSim() {
-    sim.soc     = drift(sim.soc,     0.2f,  10.0f, 95.0f);
-    sim.bms_v   = drift(sim.bms_v,   1.0f, 450.0f, 540.0f);
-    sim.bms_i   = drift(sim.bms_i,   5.0f, -200.0f, 200.0f);
-    sim.bms_temp= drift(sim.bms_temp,0.2f,  15.0f,  45.0f);
-    sim.p_inv   = drift(sim.p_inv,   1.0f,   0.0f,  30.0f);
-    sim.grid_p  = drift(sim.grid_p,  1.0f, -15.0f,  15.0f);
-    sim.load_p  = drift(sim.load_p,  0.5f,   1.0f,  20.0f);
-    sim.freq    = drift(sim.freq,    0.02f, 49.8f,  50.2f);
-    sim.v_phase = drift(sim.v_phase, 0.5f, 220.0f, 240.0f);
-    sim.pf      = drift(sim.pf,      0.01f,  0.85f,  1.0f);
+    sim.soc      = drift(sim.soc,     0.2f,  10.0f,  95.0f);
+    sim.bms_v    = drift(sim.bms_v,   1.0f, 450.0f, 540.0f);
+    sim.bms_i    = drift(sim.bms_i,   5.0f,-200.0f, 200.0f);
+    sim.bms_temp = drift(sim.bms_temp,0.2f,  15.0f,  45.0f);
+    sim.p_inv    = drift(sim.p_inv,   1.0f,   0.0f,  30.0f);
+    sim.grid_p   = drift(sim.grid_p,  1.0f,   0.0f,  50.0f);
+    sim.load_p   = drift(sim.load_p,  0.5f,   1.0f,  20.0f);
+    sim.freq     = drift(sim.freq,   0.02f,  49.8f,  50.2f);
+    sim.v_phase  = drift(sim.v_phase, 0.5f, 220.0f, 240.0f);
+    sim.pf       = drift(sim.pf,     0.01f,  0.85f,   1.0f);
+}
+
+// ---------------------------------------------------------------------------
+// Display helpers
+// ---------------------------------------------------------------------------
+void drawHeader(const char* title, const char* subtitle = nullptr) {
+    tft.fillScreen(C_BG);
+    tft.setTextColor(C_TITLE);
+    tft.setTextSize(2);
+    tft.setCursor(4, 4);
+    tft.print(title);
+    if (subtitle) {
+        tft.setTextColor(C_LABEL);
+        tft.setTextSize(1);
+        tft.setCursor(SCREEN_W - strlen(subtitle) * 6 - 4, 9);
+        tft.print(subtitle);
+    }
+    tft.drawFastHLine(0, 22, SCREEN_W, C_TITLE);
+}
+
+void drawRow(uint8_t row, const char* label, const char* value,
+             uint16_t valueColor = C_VALUE) {
+    uint8_t y = 28 + row * 18;
+    tft.setTextColor(C_LABEL); tft.setTextSize(1);
+    tft.setCursor(4, y); tft.print(label);
+    tft.setTextColor(valueColor);
+    tft.setCursor(120, y); tft.print(value);
+}
+
+void drawStatusDot(uint8_t x, uint8_t y, const char* label, bool ok) {
+    tft.fillCircle(x, y, 5, ok ? C_OK : C_FAULT);
+    tft.setTextColor(C_LABEL); tft.setTextSize(1);
+    tft.setCursor(x + 9, y - 4); tft.print(label);
+}
+
+// ---------------------------------------------------------------------------
+// Screen 1 — System status
+// ---------------------------------------------------------------------------
+void screenStatus() {
+    char buf[24];
+    snprintf(buf, sizeof(buf), "%lus", millis() / 1000);
+    drawHeader("PCS Monitor", buf);
+
+    drawStatusDot(10,  40, "WiFi",  wifiOk);
+    drawStatusDot(10,  60, "MQTT",  mqttOk);
+    drawStatusDot(10,  80, "Modbus",false);   // not tested yet
+    drawStatusDot(10, 100, "BMS",   false);   // CAN not connected yet
+
+    tft.setTextColor(C_LABEL); tft.setTextSize(1);
+    tft.setCursor(130, 40); tft.print("SOC:");
+    snprintf(buf, sizeof(buf), "%d%%", (int)sim.soc);
+    tft.setTextColor(sim.soc > 20 ? C_OK : C_WARN);
+    tft.setCursor(130, 52); tft.print(buf);
+
+    tft.setTextColor(C_LABEL);
+    tft.setCursor(130, 70); tft.print("Load:");
+    snprintf(buf, sizeof(buf), "%.1fkW", sim.load_p);
+    tft.setTextColor(C_VALUE);
+    tft.setCursor(130, 82); tft.print(buf);
+}
+
+// ---------------------------------------------------------------------------
+// Screen 2 — Power flow
+// ---------------------------------------------------------------------------
+void screenPower() {
+    drawHeader("Power Flow");
+    char buf[24];
+
+    snprintf(buf, sizeof(buf), "%.2f kW", sim.p_inv);
+    drawRow(0, "Inv Output", buf, C_OK);
+
+    snprintf(buf, sizeof(buf), "%.2f kW", sim.grid_p);
+    drawRow(1, "Grid Import", buf, sim.grid_p > 30 ? C_WARN : C_VALUE);
+
+    snprintf(buf, sizeof(buf), "%.2f kW", sim.load_p);
+    drawRow(2, "Load", buf);
+
+    snprintf(buf, sizeof(buf), "%.2f Hz", sim.freq);
+    drawRow(3, "Frequency", buf);
+
+    snprintf(buf, sizeof(buf), "%.1f V", sim.v_phase);
+    drawRow(4, "Grid Va", buf);
+
+    snprintf(buf, sizeof(buf), "%.2f", sim.pf);
+    drawRow(5, "Power Factor", buf);
+}
+
+// ---------------------------------------------------------------------------
+// Screen 3 — Battery
+// ---------------------------------------------------------------------------
+void screenBattery() {
+    drawHeader("Battery");
+    char buf[24];
+
+    // SOC value + bar
+    snprintf(buf, sizeof(buf), "SOC: %d%%", (int)sim.soc);
+    tft.setTextColor(C_VALUE); tft.setTextSize(2);
+    tft.setCursor(4, 28); tft.print(buf);
+
+    tft.drawRect(4, 52, 180, 14, C_LABEL);
+    uint16_t barColor = sim.soc > 50 ? C_OK : (sim.soc > 20 ? C_WARN : C_FAULT);
+    tft.fillRect(5, 53, (int)(180 * sim.soc / 100.0f), 12, barColor);
+
+    snprintf(buf, sizeof(buf), "%.1f V", sim.bms_v);
+    drawRow(3, "Voltage", buf);
+
+    snprintf(buf, sizeof(buf), "%.1f A", sim.bms_i);
+    drawRow(4, "Current", buf, sim.bms_i >= 0 ? C_OK : C_WARN);
+
+    snprintf(buf, sizeof(buf), "%.1f C", sim.bms_temp);
+    drawRow(5, "Temp", buf, sim.bms_temp > 35 ? C_WARN : C_VALUE);
 }
 
 // ---------------------------------------------------------------------------
@@ -69,43 +223,49 @@ void updateSim() {
 void connectWiFi() {
     Serial.printf("[WiFi] Connecting to %s", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
-    Serial.printf("\n[WiFi] IP: %s\n", WiFi.localIP().toString().c_str());
+    uint8_t attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        delay(500); Serial.print("."); attempts++;
+    }
+    wifiOk = (WiFi.status() == WL_CONNECTED);
+    if (wifiOk)
+        Serial.printf("\n[WiFi] IP: %s\n", WiFi.localIP().toString().c_str());
+    else
+        Serial.println("\n[WiFi] Failed — continuing without WiFi");
 }
 
 void connectMQTT() {
+    if (!wifiOk) return;
     mqtt.setServer(TB_HOST, TB_PORT);
     mqtt.setBufferSize(2048);
     String clientId = "ESP32_test_tb_" + String((uint32_t)ESP.getEfuseMac(), HEX);
-    while (!mqtt.connected()) {
-        Serial.print("[MQTT] Connecting...");
-        if (mqtt.connect(clientId.c_str(), TB_TOKEN, nullptr))
-            Serial.println(" OK");
-        else {
-            Serial.printf(" failed rc=%d, retrying in 5s\n", mqtt.state());
-            delay(5000);
-        }
+    Serial.print("[MQTT] Connecting...");
+    if (mqtt.connect(clientId.c_str(), TB_TOKEN, nullptr)) {
+        mqttOk = true;
+        Serial.println(" OK");
+    } else {
+        mqttOk = false;
+        Serial.printf(" failed rc=%d\n", mqtt.state());
     }
 }
 
 // ---------------------------------------------------------------------------
-// Publish all keys
+// Publish telemetry
 // ---------------------------------------------------------------------------
 void publishTelemetry() {
+    if (!mqttOk) return;
     updateSim();
 
     JsonDocument doc;
 
-    // --- Status flags ---
-    doc["running"]    = sim.running  ? 1 : 0;
+    doc["running"]    = 1;
     doc["fault"]      = 0;
     doc["alarm"]      = 0;
-    doc["grid_tied"]  = sim.grid_tied ? 1 : 0;
+    doc["grid_tied"]  = 1;
     doc["off_grid"]   = 0;
     doc["derating"]   = 0;
     doc["standby"]    = 0;
 
-    // --- AC inverter ---
     doc["freq_hz"]    = sim.freq;
     doc["v_a"]        = sim.v_phase;
     doc["v_b"]        = sim.v_phase - 0.3f;
@@ -129,19 +289,16 @@ void publishTelemetry() {
     doc["pf_c"]       = sim.pf + 0.01f;
     doc["pf_total"]   = sim.pf;
 
-    // --- DC ---
     doc["dc_voltage_v"] = sim.bms_v;
     doc["dc_current_a"] = sim.p_inv / sim.bms_v * 1000.0f;
     doc["dc_power_kw"]  = sim.p_inv;
 
-    // --- Grid ---
     doc["grid_freq_hz"] = sim.freq;
     doc["grid_v_a"]     = sim.v_phase;
     doc["grid_v_b"]     = sim.v_phase - 0.3f;
     doc["grid_v_c"]     = sim.v_phase + 0.2f;
     doc["grid_p_kw"]    = sim.grid_p;
 
-    // --- Load ---
     doc["load_freq_hz"] = sim.freq;
     doc["load_v_a"]     = sim.v_phase;
     doc["load_v_b"]     = sim.v_phase - 0.3f;
@@ -155,7 +312,6 @@ void publishTelemetry() {
     doc["load_p_kw"]    = sim.load_p;
     doc["load_s_kva"]   = sim.load_p / sim.pf;
 
-    // --- BMS ---
     doc["bms_soc_pct"]            = (int)sim.soc;
     doc["bms_soh_pct"]            = 98;
     doc["bms_soe_pct"]            = (int)sim.soc;
@@ -174,9 +330,9 @@ void publishTelemetry() {
 
     char payload[2048];
     serializeJson(doc, payload, sizeof(payload));
-    Serial.printf("[MQTT] Payload size: %d bytes\n", strlen(payload));
-
+    Serial.printf("[MQTT] Payload %d bytes\n", strlen(payload));
     bool ok = mqtt.publish("v1/devices/me/telemetry", payload);
+    mqttOk = ok || mqtt.connected();
     Serial.printf("[MQTT] Publish %s — SOC=%d%% P_inv=%.1fkW Grid=%.1fkW\n",
                   ok ? "OK" : "FAIL", (int)sim.soc, sim.p_inv, sim.grid_p);
 }
@@ -186,23 +342,51 @@ void publishTelemetry() {
 // ---------------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    delay(300);
     Serial.println("\n[Boot] test_tb starting...");
     randomSeed(esp_random());
 
+    // Display
+    pinMode(LCD_BLK, OUTPUT);
+    digitalWrite(LCD_BLK, HIGH);
+    tft.init(135, 240);
+    tft.setRotation(3);
+    tft.fillScreen(C_BG);
+    tft.setTextColor(C_LABEL); tft.setTextSize(1);
+    tft.setCursor(4, 60); tft.print("Connecting WiFi...");
+    Serial.println("[Boot] Display ready");
+
     connectWiFi();
     connectMQTT();
-    Serial.println("[Boot] Ready — publishing every 5s");
+
+    tft.fillScreen(C_BG);
+    Serial.println("[Boot] Ready");
 }
 
-void loop() {
-    if (WiFi.status() != WL_CONNECTED) connectWiFi();
-    if (!mqtt.connected())             connectMQTT();
-    mqtt.loop();
+uint8_t page = 0;
+unsigned long lastDisplay = 0;
+unsigned long lastPublish = 0;
 
-    static unsigned long lastPublish = 0;
+void loop() {
+    // Reconnect if needed
+    if (WiFi.status() != WL_CONNECTED) { connectWiFi(); }
+    if (wifiOk && !mqtt.connected())   { connectMQTT(); }
+    if (mqttOk) mqtt.loop();
+
+    // Publish every 5s
     if (millis() - lastPublish >= PUBLISH_INTERVAL_MS) {
         lastPublish = millis();
         publishTelemetry();
+    }
+
+    // Cycle display every 3s
+    if (millis() - lastDisplay >= DISPLAY_INTERVAL_MS) {
+        lastDisplay = millis();
+        switch (page % 3) {
+            case 0: screenStatus();  Serial.println("[Display] Status");  break;
+            case 1: screenPower();   Serial.println("[Display] Power");   break;
+            case 2: screenBattery(); Serial.println("[Display] Battery"); break;
+        }
+        page++;
     }
 }
