@@ -41,7 +41,7 @@ void onRpc(char* topic, byte* payload, unsigned int length) {
     String topicStr(topic);
     String requestId = topicStr.substring(topicStr.lastIndexOf('/') + 1);
 
-    StaticJsonDocument<256> req;
+    JsonDocument req;
     deserializeJson(req, payload, length);
 
     Serial.printf("[RPC] id=%s method=%s\n",
@@ -97,7 +97,7 @@ void connectMQTT() {
 // Publish dummy telemetry
 // ---------------------------------------------------------------------------
 void publishTelemetry() {
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     doc["test_counter"]  = millis() / 1000;
     doc["dummy_voltage"] = 230.5f;
     doc["dummy_power"]   = 12.3f;

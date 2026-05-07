@@ -24,6 +24,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "config.h"
+#include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
 #include "modbus_core.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
@@ -119,7 +120,7 @@ void applySetPower(float kw) {
 // MQTT callback — receives shared attribute changes and attribute responses
 // ---------------------------------------------------------------------------
 void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     deserializeJson(doc, payload, length);
 
     // Both attribute notifications and responses use the same key

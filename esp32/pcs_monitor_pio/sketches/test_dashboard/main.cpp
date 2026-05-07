@@ -26,6 +26,7 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
 #include "config.h"
+#include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
 #include "modbus_core.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"

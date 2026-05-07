@@ -104,7 +104,7 @@ void loop() {
     bms_decode(bmsData, BMS_CAN_ADDR, msg.identifier, msg.data);
 
     if (msg.identifier == (uint32_t)(0x4210 + BMS_CAN_ADDR)) {
-        Serial.printf("\n[BMS] frame #%lu — SOC=%d%%  V=%.1fV  I=%.1fA  T=%.1f°C\n",
+        Serial.printf("\n[BMS] frame #%u — SOC=%d%%  V=%.1fV  I=%.1fA  T=%.1f°C\n",
                       frameCount, bmsData.soc_pct, bmsData.voltage_v,
                       bmsData.current_a, bmsData.temperature_c);
     }
