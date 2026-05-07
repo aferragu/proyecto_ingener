@@ -83,7 +83,7 @@ void setup() {
     Serial.printf("[Boot] BMS_ADDR=%d  Speed=500kbps  TX=GPIO%d  RX=GPIO%d\n",
                   BMS_ADDR, CAN_TX_PIN, CAN_RX_PIN);
 
-    twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_LISTEN_ONLY);
+    twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_NORMAL);
     twai_timing_config_t  t = CAN_SPEED;
     twai_filter_config_t  f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
@@ -96,7 +96,7 @@ void setup() {
         return;
     }
 
-    Serial.println("[Boot] CAN ready (listen-only mode)");
+    Serial.println("[Boot] CAN ready (normal mode — ESP32 sends ACKs to BMS)");
     Serial.println("[Boot] Waiting for frames...");
     Serial.printf("[Boot] Expecting BMS IDs: 0x%04X, 0x%04X, 0x%04X, 0x%04X\n",
                   0x4210 + BMS_ADDR, 0x4220 + BMS_ADDR,
