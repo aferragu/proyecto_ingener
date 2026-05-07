@@ -32,27 +32,15 @@
 #include "driver/twai.h"
 
 // ---------------------------------------------------------------------------
-// Configuration — edit these
+// Configuration
 // ---------------------------------------------------------------------------
-#define WIFI_SSID        "TU_SSID"
-#define WIFI_PASSWORD    "TU_PASSWORD"
-#define TB_HOST          "thingsboard.cloud"
-#define TB_PORT          1883
-#define TB_TOKEN         "TU_ACCESS_TOKEN"
-
-// Modbus
-#define RS485_BAUD       115200
-#define RS485_RX_PIN     16
-#define RS485_TX_PIN     17
-#define RS485_DE_RE_PIN  5        // GPIO5 — NOT GPIO4 (LCD RST on Ideaspark)
-#define MODBUS_ID        1
+#include "config.h"   // RS485 pins, Modbus ID, CAN config, TB host/port
+#define TB_TOKEN         TB_ACCESS_TOKEN
+#define MODBUS_ID        MODBUS_DEVICE_ID
+#define BMS_ADDR         BMS_CAN_ADDR
 
 // CAN — set to false if no CAN converter connected
 #define CAN_ENABLED      false
-#define CAN_TX_PIN       GPIO_NUM_21
-#define CAN_RX_PIN       GPIO_NUM_22
-#define CAN_SPEED        TWAI_TIMING_CONFIG_500KBITS()
-#define BMS_ADDR         2        // address set on BMS front panel
 
 #define POLL_INTERVAL_MS 10000
 

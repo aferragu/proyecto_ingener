@@ -1,30 +1,19 @@
 // =============================================================================
 // test_modbus_hw — Hardware sketch: Modbus RTU RS-485 → Serial debug
 //
-// What it does:
-//   Polls the SinoSoar SP6030 inverter via Modbus RTU every 5s and prints
-//   all register blocks to Serial with scaled physical values.
-//   No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
+// Polls the SinoSoar SP6030 inverter via Modbus RTU every 5s and prints
+// all register blocks to Serial with scaled physical values.
+// No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
 //
 // Wiring:
 //   MAX485: GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485
-//
-// Serial: 115200 baud
 // =============================================================================
 
 #include <Arduino.h>
+#include "config.h"
 #include "modbus_core.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
-
-// ---------------------------------------------------------------------------
-// Configuration — edit if needed
-// ---------------------------------------------------------------------------
-#define RS485_BAUD      115200
-#define RS485_RX_PIN    16
-#define RS485_TX_PIN    17
-#define RS485_DE_RE_PIN 5       // GPIO5 — NOT GPIO4 (LCD RST on Ideaspark)
-#define MODBUS_ID       1
 
 #define POLL_INTERVAL_MS 5000
 
@@ -33,12 +22,12 @@
 // ---------------------------------------------------------------------------
 bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     uint8_t frame[8];
-    modbus_build_read(frame, MODBUS_ID, startReg, count);
+    modbus_build_read(frame, MODBUS_DEVICE_ID, startReg, count);
 
     digitalWrite(RS485_DE_RE_PIN, HIGH);
     delayMicroseconds(50);
-    Serial2.write(frame, 8);
-    Serial2.flush();
+    RS485_SERIAL.write(frame, 8);
+    RS485_SERIAL.flush();
     delayMicroseconds(50);
     digitalWrite(RS485_DE_RE_PIN, LOW);
 
@@ -46,11 +35,11 @@ bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     uint32_t t = millis();
     uint8_t idx = 0;
     while ((millis() - t) < 50 && idx == 0)
-        if (Serial2.available()) rxBuf[idx++] = Serial2.read();
+        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
     if (idx == 0) return false;
     t = millis();
     while ((millis() - t) < 20)
-        if (Serial2.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = Serial2.read();
+        if (RS485_SERIAL.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
 
     return modbus_parse_read(rxBuf, idx, count, out);
 }
@@ -64,8 +53,7 @@ void pollAndPrint() {
     Serial.printf("Poll @ %lums\n", millis());
     Serial.println("========================================");
 
-    // --- Status (reg 32) ---
-    if (modbusRead(32, 1, raw)) {
+    if (modbusRead(REG_STATUS, REG_STATUS_COUNT, raw)) {
         StatusData s; inverter_parse_status(raw, s);
         Serial.println("\n[Status]");
         Serial.printf("  running   = %d\n", s.running);
@@ -78,8 +66,7 @@ void pollAndPrint() {
         Serial.printf("  raw       = 0x%04X\n", (uint16_t)raw[0]);
     } else Serial.println("\n[Status] FAIL — no response");
 
-    // --- AC (reg 100–125) ---
-    if (modbusRead(100, 26, raw)) {
+    if (modbusRead(REG_AC_START, REG_AC_COUNT, raw)) {
         AcData ac; inverter_parse_ac(raw, ac);
         Serial.println("\n[AC Inverter]");
         Serial.printf("  freq_hz   = %.2f Hz\n",   ac.freq_hz);
@@ -100,8 +87,7 @@ void pollAndPrint() {
         Serial.printf("  pf_total  = %.2f\n",      ac.pf_total);
     } else Serial.println("\n[AC] FAIL — no response");
 
-    // --- DC (reg 141–143) ---
-    if (modbusRead(141, 3, raw)) {
+    if (modbusRead(REG_DC_START, REG_DC_COUNT, raw)) {
         DcData dc; inverter_parse_dc(raw, dc);
         Serial.println("\n[DC]");
         Serial.printf("  dc_power_kw  = %.2f kW\n", dc.power_kw);
@@ -109,11 +95,9 @@ void pollAndPrint() {
         Serial.printf("  dc_current_a = %.1f A\n",  dc.current_a);
     } else Serial.println("\n[DC] FAIL — no response");
 
-    // --- Grid (reg 170–179 + 192) ---
     int16_t grid_p_raw = 0;
-    bool grid_ok  = modbusRead(170, 10, raw);
-    bool gridp_ok = modbusRead(192, 1, &grid_p_raw);
-    if (grid_ok && gridp_ok) {
+    if (modbusRead(REG_GRID_START, REG_GRID_COUNT, raw) &&
+        modbusRead(REG_GRID_POWER, 1, &grid_p_raw)) {
         GridData g; inverter_parse_grid(raw, grid_p_raw, g);
         Serial.println("\n[Grid]");
         Serial.printf("  grid_freq_hz = %.2f Hz\n", g.freq_hz);
@@ -123,8 +107,7 @@ void pollAndPrint() {
         Serial.printf("  grid_p_kw    = %.2f kW\n", g.p_kw);
     } else Serial.println("\n[Grid] FAIL — no response");
 
-    // --- Load (reg 200–213, V3.0+) ---
-    if (modbusRead(200, 14, raw)) {
+    if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
         LoadData l; inverter_parse_load(raw, l);
         Serial.println("\n[Load]");
         Serial.printf("  load_freq_hz = %.2f Hz\n",  l.freq_hz);
@@ -141,9 +124,8 @@ void pollAndPrint() {
         Serial.printf("  load_s_kva   = %.2f kVA\n", l.s_total);
     } else Serial.println("\n[Load] FAIL — no response (requires firmware RTU >= V3.0)");
 
-    // --- Raw dump: first 10 registers (firmware version info) ---
     Serial.println("\n[Raw] Registers 0–9 (firmware info):");
-    if (modbusRead(0, 10, raw)) {
+    if (modbusRead(REG_VERSION_START, 10, raw)) {
         for (int i = 0; i < 10; i++)
             Serial.printf("  reg %2d = %6d  (0x%04X)\n", i, raw[i], (uint16_t)raw[i]);
     } else Serial.println("  FAIL");
@@ -156,17 +138,17 @@ void setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println("\n[Boot] test_modbus_hw starting...");
-    Serial.printf("[Boot] Device ID: %d  Baud: %d  DE/RE pin: %d\n",
-                  MODBUS_ID, RS485_BAUD, RS485_DE_RE_PIN);
+    Serial.printf("[Boot] Device ID: %d  Baud: %d  DE/RE: GPIO%d\n",
+                  MODBUS_DEVICE_ID, RS485_BAUD, RS485_DE_RE_PIN);
 
     pinMode(RS485_DE_RE_PIN, OUTPUT);
     digitalWrite(RS485_DE_RE_PIN, LOW);
-    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
 
     Serial.println("[Boot] RS-485 ready — polling every 5s");
     Serial.println("[Boot] If all blocks FAIL, check:");
     Serial.println("         - RS-485 A/B polarity (swap if needed)");
-    Serial.printf("         - MODBUS_ID (%d) matches inverter DIP switch\n", MODBUS_ID);
+    Serial.printf("         - MODBUS_DEVICE_ID (%d) matches inverter DIP switch\n", MODBUS_DEVICE_ID);
     Serial.printf("         - DE/RE wired to GPIO%d\n", RS485_DE_RE_PIN);
 }
 

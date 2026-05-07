@@ -1,41 +1,30 @@
 // =============================================================================
 // test_can_hw — Hardware sketch: CAN bus BMS → Serial debug
 //
-// What it does:
-//   1. Listens on CAN bus and prints every raw frame received (hex dump)
-//   2. Once valid BMS frames are detected, also prints decoded values
-//      using bms_core from lib/
-//   No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
+// Listens on CAN bus and prints every raw frame received (hex dump).
+// Once valid BMS frames are detected, also prints decoded values
+// using bms_core from lib/.
+// No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
 //
-// Wiring (TWAI native — no external CAN controller needed):
-//   SN65HVD230 or TJA1050: GPIO21→TX, GPIO22→RX, CAN_H/CAN_L → BMS
-//
-// For MCP2515 (SPI) module: different wiring and library needed — TBD.
-//
-// Serial: 115200 baud
+// Wiring:
+//   MCP2515+TJA1050 or SN65HVD230: GPIO21→TX, GPIO22→RX
+//   CAN_H / CAN_L → BMS
 // =============================================================================
 
 #include <Arduino.h>
+#include "config.h"
 #include "bms_core.h"
 #include "bms_scales.h"
 #include "driver/twai.h"
 
-// ---------------------------------------------------------------------------
-// Configuration — edit if needed
-// ---------------------------------------------------------------------------
-#define CAN_TX_PIN   GPIO_NUM_21
-#define CAN_RX_PIN   GPIO_NUM_22
-#define CAN_SPEED    TWAI_TIMING_CONFIG_500KBITS()  // confirmed 500kbps
-#define BMS_ADDR     2   // address set on BMS front panel
-
 // How many raw frames to print before switching to decoded-only output
-#define RAW_FRAMES_LIMIT  50
+#define RAW_FRAMES_LIMIT 50
 
 // ---------------------------------------------------------------------------
 // Globals
 // ---------------------------------------------------------------------------
-BmsData      bmsData = {};
-uint32_t     frameCount = 0;
+BmsData  bmsData   = {};
+uint32_t frameCount = 0;
 
 // ---------------------------------------------------------------------------
 // Print raw frame
@@ -81,26 +70,24 @@ void setup() {
     delay(500);
     Serial.println("\n[Boot] test_can_hw starting...");
     Serial.printf("[Boot] BMS_ADDR=%d  Speed=500kbps  TX=GPIO%d  RX=GPIO%d\n",
-                  BMS_ADDR, CAN_TX_PIN, CAN_RX_PIN);
+                  BMS_CAN_ADDR, CAN_TX_PIN, CAN_RX_PIN);
 
     twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_NORMAL);
     twai_timing_config_t  t = CAN_SPEED;
     twai_filter_config_t  f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     if (twai_driver_install(&g, &t, &f) != ESP_OK) {
-        Serial.println("[Boot] FAIL: twai_driver_install");
-        return;
+        Serial.println("[Boot] FAIL: twai_driver_install"); return;
     }
     if (twai_start() != ESP_OK) {
-        Serial.println("[Boot] FAIL: twai_start");
-        return;
+        Serial.println("[Boot] FAIL: twai_start"); return;
     }
 
-    Serial.println("[Boot] CAN ready (normal mode — ESP32 sends ACKs to BMS)");
+    Serial.println("[Boot] CAN ready (normal mode — ESP32 ACKs BMS frames)");
     Serial.println("[Boot] Waiting for frames...");
     Serial.printf("[Boot] Expecting BMS IDs: 0x%04X, 0x%04X, 0x%04X, 0x%04X\n",
-                  0x4210 + BMS_ADDR, 0x4220 + BMS_ADDR,
-                  0x4250 + BMS_ADDR, 0x4280 + BMS_ADDR);
+                  0x4210 + BMS_CAN_ADDR, 0x4220 + BMS_CAN_ADDR,
+                  0x4250 + BMS_CAN_ADDR, 0x4280 + BMS_CAN_ADDR);
     Serial.println("[Boot] If nothing arrives, check CAN_H/CAN_L wiring and termination.");
 }
 
@@ -110,22 +97,18 @@ void loop() {
 
     frameCount++;
 
-    // Always print raw for first N frames, then only every 100
     if (frameCount <= RAW_FRAMES_LIMIT || frameCount % 100 == 0)
         printRaw(msg);
 
-    // Decode
     bool wasValid = bmsData.valid;
-    bms_decode(bmsData, BMS_ADDR, msg.identifier, msg.data);
+    bms_decode(bmsData, BMS_CAN_ADDR, msg.identifier, msg.data);
 
-    // Print decoded summary every time we get a 0x4210+addr frame (main info frame)
-    if (msg.identifier == (uint32_t)(0x4210 + BMS_ADDR)) {
+    if (msg.identifier == (uint32_t)(0x4210 + BMS_CAN_ADDR)) {
         Serial.printf("\n[BMS] frame #%lu — SOC=%d%%  V=%.1fV  I=%.1fA  T=%.1f°C\n",
                       frameCount, bmsData.soc_pct, bmsData.voltage_v,
                       bmsData.current_a, bmsData.temperature_c);
     }
 
-    // Print full decoded dump on first valid decode
     if (!wasValid && bmsData.valid) {
         Serial.println("\n[BMS] First complete decode:");
         printDecoded();
