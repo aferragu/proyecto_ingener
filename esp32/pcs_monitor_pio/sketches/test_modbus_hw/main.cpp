@@ -39,7 +39,7 @@ bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     if (idx == 0) return false;
     t = millis();
     while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
+        if (RS485_SERIAL.available() && idx < (uint16_t)sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
 
     return modbus_parse_read(rxBuf, idx, count, out);
 }

@@ -73,7 +73,7 @@ bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
     if (idx == 0) return false;
     t = millis();
     while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
+        if (RS485_SERIAL.available() && idx < (uint16_t)sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
 
     return modbus_parse_read(rxBuf, idx, count, out);
 }
@@ -124,7 +124,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     deserializeJson(doc, payload, length);
 
     // Both attribute notifications and responses use the same key
-    if (doc.containsKey("set_power")) {
+    if (doc["set_power"].is<float>()) {
         float val = doc["set_power"].as<float>();
         Serial.printf("[TB] set_power = %.1f kW\n", val);
         setPowerRequested = val;
