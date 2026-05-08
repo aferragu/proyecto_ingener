@@ -39,10 +39,6 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     LED_OFF();
 
-    pinMode(RS485_DE_RE_PIN, OUTPUT);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-    RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
-
     initCAN();
     initBMS();
     connectWiFi();

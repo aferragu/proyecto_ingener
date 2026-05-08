@@ -189,11 +189,6 @@ void setup() {
     delay(500);
     Serial.println("\n[Boot] test_set_power starting...");
 
-    pinMode(RS485_DE_RE_PIN, OUTPUT);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-    RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
-    Serial.println("[Boot] RS-485 ready");
-
     Serial.println("[Boot] Running inverter init sequence...");
     modbusInit();
     inverter_run_init(writeRegister, readRegisters);

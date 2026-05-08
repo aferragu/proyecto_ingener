@@ -353,9 +353,7 @@ void setup() {
 
     // RS-485
     if (MODBUS_ENABLED) {
-        pinMode(RS485_DE_RE_PIN, OUTPUT);
-        digitalWrite(RS485_DE_RE_PIN, LOW);
-        RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+        modbusInit();
         Serial.println("[Boot] RS-485 ready");
         Serial.println("[Boot] Running inverter init...");
         inverter_run_init(writeRegister, readRegisters);

@@ -38,8 +38,7 @@
 #define VERIFY_INIT_MS   60000
 
 // Registros Modbus — SP6030 protocolo V3.0
-// Init
-// Inverter register addresses are defined in lib/inverter_core/src/inverter_core.h
+// Las definiciones de registros de control están en lib/inverter_core/src/inverter_core.h
 // Lectura
 #define REG_STATUS                  32
 #define REG_STATUS_COUNT             1
@@ -54,7 +53,3 @@
 #define REG_LOAD_COUNT              14
 #define REG_VERSION_START            0
 #define REG_VERSION_COUNT           22
-// Control (RPC)
-#define REG_POWER_ON               650
-#define REG_SHUTDOWN               651
-#define REG_SET_POWER              135
