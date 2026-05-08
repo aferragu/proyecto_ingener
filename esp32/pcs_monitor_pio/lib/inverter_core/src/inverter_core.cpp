@@ -79,13 +79,20 @@ void inverter_parse_load(const int16_t* r, LoadData& o) {
 
 const InitCmd* inverter_init_sequence(uint8_t* count_out) {
     static const InitCmd seq[] = {
-        { REG_DC_MAX_DISCHG_CURRENT, 1500, "Max DC discharge = 150A" },
-        { REG_DC_MAX_CHG_CURRENT,    1500, "Max DC charge = 150A"    },
-        { REG_3PHASE_CTRL_MODE,         1, "Control por fase"        },
-        { REG_PV_SWITCH,                0, "PV OFF"                  },
-        { REG_LEAKAGE_DETECT,           0, "Leakage OFF"             },
-        { REG_DCDC_SWITCH,              0, "DCDC OFF"                },
-        { REG_POWER_ON,                 1, "Power ON"                },
+        // Hardware limits
+        { REG_DC_MAX_DISCHG_CURRENT, 1500, "Max DC discharge = 150A"         },
+        { REG_DC_MAX_CHG_CURRENT,    1500, "Max DC charge = 150A"             },
+        // Operating mode — on-grid, no PV, no self-use
+        { REG_ANTI_BACKFLOW,            0, "Self-use OFF (on-grid mode)"      },
+        { REG_GRID_SCHED_MODE,          0, "AC side constant power (reg 758)" },
+        { REG_3PHASE_CTRL_MODE,         1, "3-phase independent control"      },
+        { REG_PV_SWITCH,                0, "PV OFF"                           },
+        { REG_LEAKAGE_DETECT,           0, "Leakage detect OFF"               },
+        { REG_DCDC_SWITCH,              0, "DCDC OFF"                         },
+        // Setpoint to zero before power-on
+        { REG_SET_POWER,                0, "Setpoint = 0 kW"                  },
+        // Power on last
+        { REG_POWER_ON,                 1, "Power ON"                         },
     };
     *count_out = sizeof(seq) / sizeof(seq[0]);
     return seq;
@@ -95,10 +102,8 @@ void inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn) {
     uint8_t count;
     const InitCmd* seq = inverter_init_sequence(&count);
     for (uint8_t i = 0; i < count; i++) {
-        write_fn(seq[i].reg, seq[i].val);
+        bool ok = write_fn(seq[i].reg, seq[i].val);
+        Serial.printf("[Init] reg %d = %d  (%s) → %s\n",
+                      seq[i].reg, seq[i].val, seq[i].name, ok ? "OK" : "FAIL");
     }
-    // reg 873: anti-backflow — read-modify-write
-    int16_t cur873 = 0;
-    read_fn(REG_ANTI_BACKFLOW, 1, &cur873);
-    write_fn(REG_ANTI_BACKFLOW, cur873 | 0x01);
 }

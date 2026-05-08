@@ -15,8 +15,11 @@
 #define REG_PV_SWITCH              652
 #define REG_LEAKAGE_DETECT         795
 #define REG_DCDC_SWITCH            656
-#define REG_ANTI_BACKFLOW          873
 #define REG_POWER_ON               650
+#define REG_FUNCTION_MGMT          873   // bit0=self-use mode. Must be 0 for on-grid reg 135 control
+#define REG_ANTI_BACKFLOW          873   // alias kept for compatibility
+#define REG_GRID_SCHED_MODE        758   // 0=AC constant power (default). Must be 0 for reg 135
+#define REG_SET_POWER              135   // active power setpoint. +kW=discharge, -kW=charge. precision 0.1kW
 
 // Decoded AC measurements (registers 100–125)
 struct AcData {
