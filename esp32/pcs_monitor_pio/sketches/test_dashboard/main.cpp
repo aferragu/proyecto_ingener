@@ -27,7 +27,7 @@
 #include <SPI.h>
 #include "config.h"
 #include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
-#include "modbus_core.h"
+#include "modbus.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
 #include "bms_core.h"
@@ -206,57 +206,6 @@ void screenBattery() {
 }
 
 // ---------------------------------------------------------------------------
-// Modbus read
-// ---------------------------------------------------------------------------
-bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
-    uint8_t frame[8];
-    modbus_build_read(frame, MODBUS_DEVICE_ID, startReg, count);
-
-    digitalWrite(RS485_DE_RE_PIN, HIGH);
-    delayMicroseconds(50);
-    RS485_SERIAL.write(frame, 8);
-    RS485_SERIAL.flush();
-    delayMicroseconds(50);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-
-    uint8_t rxBuf[256];
-    uint32_t t = millis();
-    uint8_t idx = 0;
-    while ((millis() - t) < 50 && idx == 0)
-        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
-    if (idx == 0) return false;
-    t = millis();
-    while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < (uint16_t)sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
-
-    return modbus_parse_read(rxBuf, idx, count, out);
-}
-
-bool modbusWrite(uint16_t reg, int16_t value) {
-    uint8_t frame[8];
-    modbus_build_write(frame, MODBUS_DEVICE_ID, reg, value);
-
-    digitalWrite(RS485_DE_RE_PIN, HIGH);
-    delayMicroseconds(50);
-    RS485_SERIAL.write(frame, 8);
-    RS485_SERIAL.flush();
-    delayMicroseconds(50);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-
-    uint8_t rxBuf[8];
-    uint32_t t = millis();
-    uint8_t idx = 0;
-    while ((millis() - t) < 50 && idx == 0)
-        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
-    if (idx == 0) return false;
-    t = millis();
-    while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < 8) rxBuf[idx++] = RS485_SERIAL.read();
-
-    return modbus_parse_write(rxBuf, idx);
-}
-
-// ---------------------------------------------------------------------------
 // WiFi / MQTT
 // ---------------------------------------------------------------------------
 void connectWiFi() {
@@ -293,7 +242,7 @@ void pollInverter(JsonDocument& doc) {
     int16_t raw[26];
     bool anyOk = false;
 
-    if (modbusRead(REG_STATUS, REG_STATUS_COUNT, raw)) {
+    if (readRegisters(REG_STATUS, REG_STATUS_COUNT, raw)) {
         anyOk = true;
         StatusData s; inverter_parse_status(raw, s);
         doc["fault"]     = s.fault;
@@ -306,7 +255,7 @@ void pollInverter(JsonDocument& doc) {
                       s.running, s.grid_tied, s.fault);
     } else Serial.println("[Modbus] FAIL: reg 32");
 
-    if (modbusRead(REG_AC_START, REG_AC_COUNT, raw)) {
+    if (readRegisters(REG_AC_START, REG_AC_COUNT, raw)) {
         anyOk = true;
         AcData ac; inverter_parse_ac(raw, ac);
         doc["freq_hz"]    = ac.freq_hz;
@@ -322,7 +271,7 @@ void pollInverter(JsonDocument& doc) {
         Serial.printf("[Modbus] AC: %.1fV %.2fkW PF=%.2f\n", ac.v_a, ac.p_inv, ac.pf_total);
     } else Serial.println("[Modbus] FAIL: reg 100");
 
-    if (modbusRead(REG_DC_START, REG_DC_COUNT, raw)) {
+    if (readRegisters(REG_DC_START, REG_DC_COUNT, raw)) {
         anyOk = true;
         DcData dc; inverter_parse_dc(raw, dc);
         doc["dc_power_kw"]  = dc.power_kw;
@@ -331,8 +280,8 @@ void pollInverter(JsonDocument& doc) {
     } else Serial.println("[Modbus] FAIL: reg 141");
 
     int16_t grid_p_raw = 0;
-    if (modbusRead(REG_GRID_START, REG_GRID_COUNT, raw) &&
-        modbusRead(REG_GRID_POWER, 1, &grid_p_raw)) {
+    if (readRegisters(REG_GRID_START, REG_GRID_COUNT, raw) &&
+        readRegisters(REG_GRID_POWER, 1, &grid_p_raw)) {
         anyOk = true;
         GridData g; inverter_parse_grid(raw, grid_p_raw, g);
         doc["grid_freq_hz"] = g.freq_hz;
@@ -342,7 +291,7 @@ void pollInverter(JsonDocument& doc) {
         Serial.printf("[Modbus] Grid: %.1fHz %.2fkW\n", g.freq_hz, g.p_kw);
     } else Serial.println("[Modbus] FAIL: reg 170/192");
 
-    if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
+    if (readRegisters(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
         anyOk = true;
         LoadData l; inverter_parse_load(raw, l);
         doc["load_p_kw"]  = l.p_total;
@@ -409,7 +358,7 @@ void setup() {
         RS485_SERIAL.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
         Serial.println("[Boot] RS-485 ready");
         Serial.println("[Boot] Running inverter init...");
-        inverter_run_init(modbusWrite, modbusRead);
+        inverter_run_init(writeRegister, readRegisters);
         Serial.println("[Boot] Inverter init done");
     }
 

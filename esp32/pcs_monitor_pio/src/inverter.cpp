@@ -37,18 +37,21 @@ void readFirmwareVersion(PubSubClient& mqtt) {
 
 void inverterInit() {
     Serial.println("[Init] Configurando inversor...");
+    modbusInit();
     inverter_run_init(writeRegister, readRegisters);
     Serial.println("[Init] Listo.");
 }
 
 void verifyAndReinit() {
     static const struct { uint16_t reg; int16_t expected; const char* name; } cfg[] = {
-        { 763, 1500, "Max DC discharge" },
-        { 764, 1500, "Max DC charge"    },
-        { 341,    1, "3-phase ctrl"     },
-        { 652,    0, "PV switch"        },
-        { 795,    0, "Leakage detect"   },
-        { 656,    0, "DCDC switch"      },
+        { 763,    0, "Max DC discharge"          },
+        { 764,    0, "Max DC charge"             },
+        { 341,    1, "3-phase ctrl"              },
+        { 652,    0, "PV switch"                 },
+        { 795,    0, "Leakage detect"            },
+        { 656,    0, "DCDC switch"               },
+        { 873,    0, "Function mgmt (on-grid)"   },
+        { 758,    0, "Grid sched mode (AC pwr)"  },
     };
     bool anyFixed = false;
     for (const auto& c : cfg) {
@@ -59,14 +62,6 @@ void verifyAndReinit() {
             writeRegister(c.reg, c.expected);
             anyFixed = true;
             delay(100);
-        }
-    }
-    int16_t cur873;
-    if (readRegisters(873, 1, &cur873)) {
-        if ((cur873 & 0x01) == 0) {
-            writeRegister(873, cur873 | 0x01);
-            Serial.println("[Verify] reg 873 Anti-backflow corregido");
-            anyFixed = true;
         }
     }
     Serial.println(anyFixed ? "[Verify] Parámetros corregidos — posible reinicio del inversor"

@@ -25,7 +25,7 @@
 #include <ArduinoJson.h>
 #include "config.h"
 #include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
-#include "modbus_core.h"
+#include "modbus.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
 
@@ -52,57 +52,6 @@ float setPowerRequested = 0.0f;   // last value received from ThingsBoard
 bool  newSetpoint       = false;  // flag: apply setpoint on next loop
 
 // ---------------------------------------------------------------------------
-// Modbus helpers
-// ---------------------------------------------------------------------------
-bool modbusRead(uint16_t startReg, uint16_t count, int16_t* out) {
-    uint8_t frame[8];
-    modbus_build_read(frame, MODBUS_DEVICE_ID, startReg, count);
-
-    digitalWrite(RS485_DE_RE_PIN, HIGH);
-    delayMicroseconds(50);
-    RS485_SERIAL.write(frame, 8);
-    RS485_SERIAL.flush();
-    delayMicroseconds(50);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-
-    uint8_t rxBuf[256];
-    uint32_t t = millis();
-    uint8_t idx = 0;
-    while ((millis() - t) < 50 && idx == 0)
-        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
-    if (idx == 0) return false;
-    t = millis();
-    while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < (uint16_t)sizeof(rxBuf)) rxBuf[idx++] = RS485_SERIAL.read();
-
-    return modbus_parse_read(rxBuf, idx, count, out);
-}
-
-bool modbusWrite(uint16_t reg, int16_t value) {
-    uint8_t frame[8];
-    modbus_build_write(frame, MODBUS_DEVICE_ID, reg, value);
-
-    digitalWrite(RS485_DE_RE_PIN, HIGH);
-    delayMicroseconds(50);
-    RS485_SERIAL.write(frame, 8);
-    RS485_SERIAL.flush();
-    delayMicroseconds(50);
-    digitalWrite(RS485_DE_RE_PIN, LOW);
-
-    uint8_t rxBuf[8];
-    uint32_t t = millis();
-    uint8_t idx = 0;
-    while ((millis() - t) < 50 && idx == 0)
-        if (RS485_SERIAL.available()) rxBuf[idx++] = RS485_SERIAL.read();
-    if (idx == 0) return false;
-    t = millis();
-    while ((millis() - t) < 20)
-        if (RS485_SERIAL.available() && idx < 8) rxBuf[idx++] = RS485_SERIAL.read();
-
-    return modbus_parse_write(rxBuf, idx);
-}
-
-// ---------------------------------------------------------------------------
 // Apply setpoint to inverter
 // ---------------------------------------------------------------------------
 void applySetPower(float kw) {
@@ -110,7 +59,7 @@ void applySetPower(float kw) {
     kw = constrain(kw, -2.0f, 2.0f);
 
     int16_t raw = (int16_t)(kw / SCALE_SET_POWER_KW);
-    bool ok = modbusWrite(REG_SET_POWER, raw);
+    bool ok = writeRegister(REG_SET_POWER, raw);
 
     Serial.printf("[SetPower] %.1f kW → raw=%d → %s\n",
                   kw, raw, ok ? "OK" : "FAIL");
@@ -176,7 +125,7 @@ void pollAndPublish() {
 
     // Read back reg 135 (active setpoint)
     int16_t raw135 = 0;
-    if (modbusRead(REG_SET_POWER, 1, &raw135)) {
+    if (readRegisters(REG_SET_POWER, 1, &raw135)) {
         float active = raw135 * SCALE_SET_POWER_KW;
         doc["set_power_requested"] = setPowerRequested;
         doc["set_power_active"]    = active;
@@ -187,7 +136,7 @@ void pollAndPublish() {
 
     // Read DC (reg 141–143)
     int16_t dc_raw[3];
-    if (modbusRead(REG_DC_START, REG_DC_COUNT, dc_raw)) {
+    if (readRegisters(REG_DC_START, REG_DC_COUNT, dc_raw)) {
         DcData dc; inverter_parse_dc(dc_raw, dc);
         doc["dc_power_kw"]  = dc.power_kw;
         doc["dc_current_a"] = dc.current_a;
@@ -197,7 +146,7 @@ void pollAndPublish() {
 
     // Read AC total power (reg 100–125, only need p_inv)
     int16_t ac_raw[26];
-    if (modbusRead(REG_AC_START, REG_AC_COUNT, ac_raw)) {
+    if (readRegisters(REG_AC_START, REG_AC_COUNT, ac_raw)) {
         AcData ac; inverter_parse_ac(ac_raw, ac);
         doc["p_inv_kw"] = ac.p_inv;
         Serial.printf("[Poll] AC p_inv: %.2fkW\n", ac.p_inv);
@@ -207,8 +156,8 @@ void pollAndPublish() {
     // Read Grid (reg 170–179 + 192)
     int16_t grid_raw[10];
     int16_t grid_p_raw = 0;
-    if (modbusRead(REG_GRID_START, REG_GRID_COUNT, grid_raw) &&
-        modbusRead(REG_GRID_POWER, 1, &grid_p_raw)) {
+    if (readRegisters(REG_GRID_START, REG_GRID_COUNT, grid_raw) &&
+        readRegisters(REG_GRID_POWER, 1, &grid_p_raw)) {
         GridData g; inverter_parse_grid(grid_raw, grid_p_raw, g);
         doc["grid_p_kw"] = g.p_kw;
         Serial.printf("[Poll] Grid: %.2fkW\n", g.p_kw);
@@ -217,7 +166,7 @@ void pollAndPublish() {
 
     // Read Load (reg 200–213, V3.0+)
     int16_t load_raw[14];
-    if (modbusRead(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
+    if (readRegisters(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
         LoadData l; inverter_parse_load(load_raw, l);
         doc["load_p_kw"] = l.p_total;
         Serial.printf("[Poll] Load: %.2fkW\n", l.p_total);
@@ -246,7 +195,8 @@ void setup() {
     Serial.println("[Boot] RS-485 ready");
 
     Serial.println("[Boot] Running inverter init sequence...");
-    inverter_run_init(modbusWrite, modbusRead);
+    modbusInit();
+    inverter_run_init(writeRegister, readRegisters);
     Serial.println("[Boot] Inverter init done.");
 
     connectWiFi();
