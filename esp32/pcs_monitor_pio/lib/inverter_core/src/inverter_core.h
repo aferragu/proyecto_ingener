@@ -16,6 +16,7 @@
 #define REG_LEAKAGE_DETECT         795
 #define REG_DCDC_SWITCH            656
 #define REG_ANTI_BACKFLOW          873
+#define REG_POWER_ON               650
 
 // Decoded AC measurements (registers 100–125)
 struct AcData {

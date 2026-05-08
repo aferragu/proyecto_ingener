@@ -85,6 +85,7 @@ const InitCmd* inverter_init_sequence(uint8_t* count_out) {
         { REG_PV_SWITCH,                0, "PV OFF"                  },
         { REG_LEAKAGE_DETECT,           0, "Leakage OFF"             },
         { REG_DCDC_SWITCH,              0, "DCDC OFF"                },
+        { REG_POWER_ON,                 1, "Power ON"                },
     };
     *count_out = sizeof(seq) / sizeof(seq[0]);
     return seq;
