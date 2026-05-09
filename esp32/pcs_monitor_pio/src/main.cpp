@@ -24,7 +24,7 @@
 #include "ems.h"
 #include <WiFi.h>
 
-StaticJsonDocument<2048> telemetry;
+JsonDocument telemetry;
 
 unsigned long lastModbusMs  = 0;
 unsigned long lastBmsMs     = 0;

@@ -48,7 +48,7 @@ void onRpc(char* topic, byte* payload, unsigned int length) {
                   requestId.c_str(),
                   req["method"].as<const char*>());
 
-    if (req.containsKey("params"))  {
+    if (req["params"].is<JsonObject>())  {
         String params;
         serializeJson(req["params"], params);
         Serial.printf("[RPC] params=%s\n", params.c_str());

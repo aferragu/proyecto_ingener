@@ -143,7 +143,7 @@ void screenStatus() {
 
     tft.setTextColor(C_LABEL);
     tft.setCursor(130, 70); tft.print("SOC:");
-    snprintf(buf, sizeof(buf), "%d%%", bmsData.soc_pct);
+    snprintf(buf, sizeof(buf), "%.0f%%", bmsData.soc_pct);
     tft.setTextColor(canOk ? (bmsData.soc_pct > 20 ? C_OK : C_WARN) : C_LABEL);
     tft.setCursor(130, 82); tft.print(canOk ? buf : "--");
 }
@@ -182,7 +182,7 @@ void screenBattery() {
     char buf[24];
 
     if (canOk) {
-        snprintf(buf, sizeof(buf), "SOC: %d%%", bmsData.soc_pct);
+        snprintf(buf, sizeof(buf), "SOC: %.0f%%", bmsData.soc_pct);
         tft.setTextColor(C_VALUE); tft.setTextSize(2);
         tft.setCursor(4, 28); tft.print(buf);
         tft.drawRect(4, 52, 180, 14, C_LABEL);
@@ -275,8 +275,8 @@ void loop() {
         pollBMS(doc);
 
         // Update display vars from doc
-        modbusOk = doc.containsKey("running");
-        canOk    = doc.containsKey("bms_soc_pct");
+        modbusOk = doc["running"].is<int>();
+        canOk    = doc["bms_soc_pct"].is<float>();
         disp_p_inv  = doc["p_inv_kw"]   | 0.0f;
         disp_freq   = doc["freq_hz"]     | 0.0f;
         disp_v_a    = doc["v_a"]         | 0.0f;

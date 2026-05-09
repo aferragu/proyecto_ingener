@@ -87,7 +87,7 @@ void readFirmwareVersion(PubSubClient& mqtt) {
     else
         Serial.printf("[Inverter] ⚠ Protocolo V%d — regs 200-213 pueden no estar\n", rtu_ver);
 
-    StaticJsonDocument<256> attrs;
+    JsonDocument attrs;
     attrs["fw_model"]        = v[1];
     attrs["fw_hw_version"]   = hw_ver;
     attrs["fw_dsp_version"]  = dsp_fw;

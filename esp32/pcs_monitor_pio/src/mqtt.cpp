@@ -34,7 +34,7 @@ void onRpcMessage(char* topic, byte* payload, unsigned int length) {
     String requestId = topicStr.substring(topicStr.lastIndexOf('/') + 1);
     String responseTopic = "v1/devices/me/rpc/response/" + requestId;
 
-    StaticJsonDocument<256> req;
+    JsonDocument req;
     deserializeJson(req, payload, length);
     const char* method = req["method"];
 

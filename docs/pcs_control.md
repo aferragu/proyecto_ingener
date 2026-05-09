@@ -1,28 +1,34 @@
-# pcs_monitor — Documentación
+# pcs_control — Documentación
 
 ## Descripción general
 
-Firmware para ESP32 que actúa como EMS (Energy Management System) de monitoreo y control para el inversor SinoSoar SP6030. Lee datos del inversor via Modbus RTU (RS-485), del BMS LWS 16S300A via CAN bus, publica telemetría a ThingsBoard via MQTT sobre WiFi, y recibe comandos de control via RPC y shared attributes.
+Firmware para ESP32 que actúa como EMS (Energy Management System) para inversor SinoSoar SP6030 y BMS LWS 16S300A. Lee datos vía Modbus RTU (RS-485) de ambos dispositivos en bus compartido, publica telemetría a ThingsBoard vía MQTT sobre WiFi, y recibe comandos de control vía RPC y shared attributes.
 
-El proyecto está organizado como un proyecto PlatformIO en `esp32/pcs_monitor_pio/`. El sketch monolítico original queda en `esp32/pcs_monitor/` como referencia.
+El proyecto está organizado como un proyecto PlatformIO en `esp32/pcs_monitor_pio/`.
 
 ---
 
 ## Estructura del repositorio
 
 ```
-esp32/
-├── pcs_monitor/           # sketch Arduino original (referencia)
-└── pcs_monitor_pio/       # proyecto PlatformIO (activo)
-    ├── platformio.ini
-    ├── include/           # headers globales (config.h, credentials.h, scales)
-    ├── lib/               # módulos puros — sin dependencias Arduino/ESP-IDF
-    │   ├── modbus_core/   # CRC16, frame building, response parsing
-    │   ├── inverter_core/ # register scaling, init sequence, inverter_run_init
-    │   └── bms_core/      # Pylontech/LWS CAN frame decoding
-    ├── src/               # firmware de producción (capas hardware)
-    ├── test/              # tests unitarios (pio test -e native)
-    └── sketches/          # sketches de prueba de hardware
+esp32/pcs_monitor_pio/
+├── platformio.ini
+├── include/              # headers globales (config.h, credentials.h)
+├── lib/                  # módulos reutilizables
+│   ├── inverter_parser/  # parsing puro registros SP6030 — sin Arduino, testeable en native
+│   ├── inverter/         # capa hardware inversor — ModbusMaster FC03/FC06
+│   ├── bms_parser/       # parsing puro registros LWS — sin Arduino, testeable en native
+│   └── bms/              # capa hardware BMS — ModbusMaster FC04
+├── src/                  # firmware de producción
+│   ├── main.cpp          # setup() y loop() — orquestador
+│   ├── mqtt.cpp          # WiFi, MQTT, RPC handler, LED
+│   ├── ems.cpp           # lógica EMS (stub, pendiente activar)
+│   └── display.cpp       # LCD ST7789
+├── test/                 # tests unitarios (pio test -e native)
+│   ├── test_bms/         # parseo registros LWS
+│   ├── test_ems/         # lógica de decisión EMS
+│   └── test_inverter/    # escalas y parseo registros SP6030
+└── sketches/             # sketches de prueba de hardware
 ```
 
 ### Entornos PlatformIO
@@ -35,7 +41,6 @@ esp32/
 | `test_mqtt` | `pio run -e test_mqtt -t upload` | Prueba WiFi + ThingsBoard aislada |
 | `test_tb` | `pio run -e test_tb -t upload` | Dashboard simulado: pantalla + ThingsBoard |
 | `test_modbus_hw` | `pio run -e test_modbus_hw -t upload` | Prueba Modbus real → Serial |
-| `test_can_hw` | `pio run -e test_can_hw -t upload` | Prueba CAN / BMS → Serial |
 | `test_set_power` | `pio run -e test_set_power -t upload` | Control de potencia end-to-end |
 | `test_dashboard` | `pio run -e test_dashboard -t upload` | Hardware real → pantalla + ThingsBoard |
 
@@ -51,12 +56,9 @@ esp32/
 
 ```
 ESP32 GPIO17 (TX2) ──► MAX485 DI  ─┐
-ESP32 GPIO16 (RX2) ◄── MAX485 RO   ├── RS-485 bus → Inversor SP6030
-ESP32 GPIO5        ──► MAX485 DE+RE─┘
-
-ESP32 GPIO21       ──► CAN TX ─┐
-ESP32 GPIO22       ◄── CAN RX  ├── CAN bus → BMS LWS 16S300A
-                               ┘   (módulo MCP2515+TJA1050 o SN65HVD230)
+ESP32 GPIO16 (RX2) ◄── MAX485 RO   ├── RS-485 bus compartido
+ESP32 GPIO5        ──► MAX485 DE+RE─┘   → Inversor SP6030 (ID: MODBUS_DEVICE_ID)
+                                        → BMS LWS 16S300A  (ID: BMS_MODBUS_DEVICE_ID)
 
 ESP32 GPIO23 (MOSI)──► LCD MOSI ─┐
 ESP32 GPIO18 (SCLK)──► LCD SCLK  │
@@ -79,77 +81,51 @@ ESP32 GPIO32       ──► LCD BLK   ┘
 | 16 | RS485 RX |
 | 17 | RS485 TX |
 | 18 | LCD SCLK |
-| 21 | CAN TX |
-| 22 | CAN RX |
 | 23 | LCD MOSI |
 | 32 | LCD backlight |
 
-Libres: 12, 13, 14, 25, 26, 27, 33, 34 (input only), 35 (input only).
+Libres: 12, 13, 14, 21, 22, 25, 26, 27, 33, 34 (input only), 35 (input only).
 
 ---
 
 ## Arquitectura del firmware
 
-### lib/ — módulos puros
-
-Los módulos en `lib/` no tienen dependencias de Arduino ni ESP-IDF. Se compilan para cualquier entorno incluyendo `native` (tests en el host).
-
-| Módulo | Contenido |
-|---|---|
-| `modbus_core` | `crc16()`, `modbus_build_read/write()`, `modbus_parse_read/write()` |
-| `inverter_core` | `inverter_parse_ac/dc/grid/load/status()`, `inverter_run_init()`, `inverter_init_sequence()` |
-| `bms_core` | `bms_decode()` — decodifica tramas CAN del BMS |
-
-`inverter_run_init(write_fn, read_fn)` acepta punteros a función — se puede llamar desde el firmware de producción y desde cualquier sketch sin duplicar lógica.
-
-### src/ — capas hardware
+### Separación de capas
 
 ```
-src/
-├── main.cpp       # setup() y loop() — orquestador
-├── modbus.cpp     # RS-485 UART → llama modbus_core
-├── inverter.cpp   # readFirmwareVersion, inverterInit, pollModbus, verifyAndReinit
-├── bms.cpp        # TWAI init/poll → llama bms_core
-├── mqtt.cpp       # WiFi, MQTT, RPC handler, LED
-├── ems.cpp        # lógica EMS (stub, pendiente)
-└── display.cpp    # LCD ST7789 (pendiente integración)
+lib/inverter_parser/  — parsing puro SP6030: parse_ac/dc/grid/load/status, init_sequence
+lib/inverter/         — hardware: ModbusMaster FC03/FC06, inverterInit(serial, deRePin)
+lib/bms_parser/       — parsing puro LWS: bms_parse_modbus(), BmsData
+lib/bms/              — hardware: ModbusMaster FC04, bmsInit(serial, deRePin)
+src/                  — main, mqtt, ems, display — el pegamento
 ```
 
-### Headers de escalas
+Los `_parser` no dependen de Arduino — compilables en `native` para tests. Las capas `inverter/` y `bms/` instancian su propio `ModbusMaster` y reciben el serial ya inicializado como parámetro — el bus RS-485 es un recurso externo.
 
-| Header | Fuente | Contenido |
-|---|---|---|
-| `inverter_scales.h` | SinoSoar PCS Modbus Protocol V3.0 | Factores de escala por tipo de registro |
-| `bms_scales.h` | LWS/Pylontech CAN Bus Protocol V1.24 | Escalas y offsets de tramas CAN |
+### Flujo de ejecución
 
-Fuente única de verdad para conversiones raw → físico. Un cambio se propaga a producción, sketches y tests automáticamente.
-
----
-
-## Flujo de ejecución
-
-### setup()
+#### setup()
 ```
 Boot
- ├── RS-485 init (UART2, 115200 bps, 8N1)
- ├── CAN init (TWAI, 500 kbps, 29-bit extended)
+ ├── Serial2.begin(115200)          — RS-485 compartido
+ ├── inverterInit(Serial2, GPIO5)   — init Modbus + secuencia init SP6030
+ ├── bmsInit(Serial2, GPIO5)        — init Modbus BMS (mismo bus, distinto device ID)
  ├── WiFi connect
  ├── MQTT connect + subscribe RPC
- ├── readFirmwareVersion() → publica atributos ThingsBoard
- ├── inverterInit() → llama inverter_run_init()
- ├── pollModbus() + pollCAN() → primera lectura
- └── publishTelemetry() → primera publicación
+ ├── readFirmwareVersion()          — publica atributos ThingsBoard
+ ├── pollModbus() + pollBMS()       — primera lectura
+ └── publishTelemetry()             — primera publicación
 ```
 
-### loop()
+#### loop()
 ```
 Loop continuo
- ├── mqtt.loop()        continuo — procesa RPC y shared attributes
+ ├── mqtt.loop()        continuo — procesa RPC y keepalive
  ├── WiFi reconnect     si desconectado
  ├── updateLed()        continuo
  ├── verifyAndReinit()  cada 60s
  ├── pollModbus()       cada 5s
- ├── pollCAN()          cada 1s
+ ├── pollBMS()          cada 2s
  └── publishTelemetry() cada 10s
 ```
 
@@ -157,29 +133,28 @@ Loop continuo
 
 ## Módulos
 
-### modbus / modbus_core
+### inverter_parser / inverter
 
-Modbus RTU sobre RS-485, implementación manual:
-- FC 0x03 — Read Holding Registers
-- FC 0x06 — Preset Single Register
-- CRC16 polinomio 0xA001, byte bajo primero
-- Timeout dos fases: primer byte 50ms, drena 20ms más
+**Bus compartido** con el BMS. Inversor SP6030 responde en `MODBUS_DEVICE_ID` (config.h).
 
-### inverter / inverter_core
+**Protocolo:** SinoSoar PCS Modbus V3.0 — FC03 lectura, FC06 escritura, 115200 bps.
 
-**Secuencia de init** — `inverter_run_init()` en `inverter_core`, llamada desde `inverterInit()` y desde `test_set_power`:
+**Secuencia de init** (ejecutada en `inverterInit()`):
 
-| Registro | Valor | Descripción |
-|---|---|---|
-| 763 | 1500 | Max corriente descarga DC = 150 A |
-| 764 | 1500 | Max corriente carga DC = 150 A |
-| 341 | 1 | Control por fase individual |
-| 652 | 0 | PV apagado |
-| 795 | 0 | Detección de fuga deshabilitada |
-| 656 | 0 | DCDC apagado |
-| 873 | bit0=1 | Anti-backflow (read-modify-write) |
+| Paso | Registro | Valor | Descripción |
+|---|---|---|---|
+| 1 | 763 | 1500 | Max corriente descarga DC = 150 A |
+| 2 | 764 | 1500 | Max corriente carga DC = 150 A |
+| 3 | 873 | 0 | Self-use mode OFF → habilita control por reg 135 |
+| 4 | 758 | 0 | AC side constant power mode |
+| 5 | 341 | 1 | Control por fase individual |
+| 6 | 652 | 0 | PV apagado |
+| 7 | 795 | 0 | Detección de fuga deshabilitada |
+| 8 | 656 | 0 | DCDC apagado |
+| 9 | 135 | 0 | Setpoint = 0 kW antes de encender |
+| 10 | 650 | 1 | Power ON |
 
-> ⚠ Power ON (reg 650) no está en el init automático — debe ejecutarse via RPC `powerOn`.
+> **reg 873 = 0 es crítico** — si está en 1 (self-use mode), el reg 135 no tiene efecto. El EMS oficial del fabricante usa 873=1 porque opera en modo autoconsumo con reg 353; nosotros operamos on-grid con reg 135.
 
 **Bloques Modbus leídos en cada ciclo:**
 
@@ -191,44 +166,68 @@ Modbus RTU sobre RS-485, implementación manual:
 | Red | 170–179, 192 | grid_freq_hz, grid_v_a/b/c, grid_p_kw |
 | Carga (V3.0) | 200–213 | load_p_kw, load_s_kva, load_v/i_a/b/c |
 
-> ⚠ Registros 200–213 requieren firmware RTU ≥ V3.0 (reg 19 ≥ 30).
+> Registros 200–213 requieren firmware RTU ≥ V3.0 (reg 19 ≥ 30).
 
-**Factores de escala** (`inverter_scales.h`):
+**API pública:**
 
-| Constante | Valor | Aplica a |
-|---|---|---|
-| `SCALE_FREQ_HZ` | 0.01 | Frecuencia |
-| `SCALE_VOLTAGE_V` | 0.1 | Tensiones AC y DC |
-| `SCALE_CURRENT_A` | 0.1 | Corrientes AC y DC |
-| `SCALE_POWER_KW` | 0.01 | Potencias activa y reactiva (lectura) |
-| `SCALE_PF` | 0.01 | Factor de potencia |
-| `SCALE_SET_POWER_KW` | 0.1 | Reg 135 setPower (escritura — escala distinta) |
-
-### bms / bms_core
-
-Hardware: **LWS 16S300A** (Huizhou LWS New Energy Technology). Protocolo compatible con Pylontech High Voltage CAN Bus V1.24.
-
-Confirmado por captura CANalyzer:
-- **500 kbps**, tramas extendidas **29 bits**
-- **Byte order: LSB first** (little-endian), confirmado por manual
-- Dirección configurada en panel frontal — actualmente **addr=2**, `BMS_CAN_ADDR` en `config.h` debe ser 2
-
-| CAN ID | Contenido |
+| Función | Descripción |
 |---|---|
-| 0x4210+addr | Tensión pack, corriente, temperatura, SOC, SOH |
-| 0x4220+addr | Límites carga/descarga (tensión y corriente máxima) |
-| 0x4250+addr | Estado, fault, alarm, protection |
-| 0x4280+addr | Flags forbidden, SOE |
+| `inverterInit(serial, deRePin)` | Init Modbus + secuencia arranque |
+| `pollModbus(telemetry)` | Lee todos los bloques, llena JsonDocument |
+| `inverterSetPower(kw)` | Escribe setpoint AC reg 135 (0.1 kW precisión) |
+| `inverterPowerOn()` | reg 650 = 1 |
+| `inverterShutdown()` | reg 650 = 0 |
+| `verifyAndReinit()` | Verifica y corrige registros de config |
+| `readFirmwareVersion(mqtt)` | Lee versión, publica como atributos TB |
 
-**Factores de escala** (`bms_scales.h`):
+### bms_parser / bms
 
-| Campo | Scale | Offset |
+**Bus compartido** con el inversor. BMS LWS responde en `BMS_MODBUS_DEVICE_ID` (config.h, default 51 — configurable por DIP switch en la batería, rango 51–65).
+
+**Protocolo:** LWS Modbus Communication Protocol V1.36 — FC04 (Input Registers), 115200 bps (configurar en el BMS antes de conectar al bus).
+
+**Registros leídos:**
+
+| Registro | Campo | Tipo | Escala |
+|---|---|---|---|
+| 0x1000 | `voltage_v` | UINT16 | ×0.01 V |
+| 0x1001 | `current_a` | INT16 | ×0.01 A (negativo = descarga) |
+| 0x1003 | `temp_avg_c` | INT16 | ×0.1 °C |
+| 0x1005 | `alarm` | HEX | bitfield |
+| 0x1006 | `protection` | HEX | bitfield |
+| 0x1007 | `fault` + status | HEX | byte0=fault, byte1=status |
+| 0x1008 | `soc_pct` | UINT16 | ×0.1 % |
+| 0x1009 | `soh_pct` | UINT16 | ×0.1 % |
+| 0x100D | `cell_voltage_max_v` | UINT16 | ×0.001 V |
+| 0x100E | `cell_voltage_min_v` | UINT16 | ×0.001 V |
+| 0x1010 | `temp_cell_max_c` | INT16 | ×0.1 °C |
+| 0x1011 | `temp_cell_min_c` | INT16 | ×0.1 °C |
+| 0x1012 | `temp_fet_c` | INT16 | ×0.1 °C |
+| 0x101D | `charge_cutoff_v` | UINT16 | ×0.01 V |
+| 0x1020 | `discharge_cutoff_v` | UINT16 | ×0.01 V |
+| 0x2500 | `max_charge_a` | UINT16 | ×0.1 A |
+| 0x2501 | `max_discharge_a` | UINT16 | ×0.1 A |
+
+**Flags derivados del reg 0x1007 byte1:**
+
+| Bit | Campo | Descripción |
 |---|---|---|
-| Tensión (0x4210) | 0.1 V | 0 |
-| Corriente (0x4210, 0x4220) | 0.1 A | −3000 A |
-| Temperatura (0x4210) | 0.1 °C | −100 °C |
-| Tensión de corte (0x4220) | 0.1 V | 0 |
-| Forbidden mark (0x4280) | — | 0xAA = forbidden |
+| 0 | `charging` | Estado de carga activo |
+| 1 | `discharging` | Estado de descarga activo |
+| 2 | `charge_forbidden` | MOSFET carga OFF → carga prohibida |
+| 3 | `discharge_forbidden` | MOSFET descarga OFF → descarga prohibida |
+
+**`force_charge_req`** — derivado de reg 0x1005 byte1 bit3 (low SOC alarm).
+
+**Keys ThingsBoard publicados por `pollBMS()`:**
+`bms_voltage_v`, `bms_current_a`, `bms_soc_pct`, `bms_soh_pct`, `bms_temp_avg_c`, `bms_temp_cell_max_c`, `bms_temp_cell_min_c`, `bms_temp_fet_c`, `bms_cell_v_max`, `bms_cell_v_min`, `bms_max_charge_a`, `bms_max_discharge_a`, `bms_charge_cutoff_v`, `bms_discharge_cutoff_v`, `bms_charging`, `bms_discharging`, `bms_charge_forbidden`, `bms_discharge_forbidden`, `bms_force_charge`, `bms_fault`, `bms_alarm`, `bms_protection`
+
+**API pública:**
+
+| Función | Descripción |
+|---|---|
+| `bmsInit(serial, deRePin)` | Init Modbus — no requiere secuencia de arranque |
+| `pollBMS(telemetry)` | Lee todos los registros, llena JsonDocument |
 
 ### mqtt
 
@@ -238,23 +237,19 @@ Confirmado por captura CANalyzer:
 
 **RPCs soportados:**
 
-| Método | Params | Registro | Descripción |
-|---|---|---|---|
-| `powerOn` | — | 650 | Arranque general |
-| `shutdown` | — | 651 | Parada general |
-| `setPower` | `{"value": X}` | 135 | Setpoint potencia activa (kW, −100..+100) |
-
-**Shared attributes escuchados:**
-
-| Atributo | Tipo | Descripción |
+| Método | Params | Descripción |
 |---|---|---|
-| `set_power` | float | Setpoint de potencia desde ThingsBoard (kW) |
+| `powerOn` | — | reg 650 = 1 |
+| `shutdown` | — | reg 650 = 0 |
+| `setPower` | `{"value": X}` | Setpoint potencia AC kW, −100..+100 |
 
 ### ems
 
-Stub con lógica propuesta comentada. Parámetros previstos:
+Stub con lógica propuesta comentada. Ver `docs/ems_design.md` para el diseño completo.
 
-| Parámetro | Valor default | Descripción |
+Parámetros previstos:
+
+| Parámetro | Default | Descripción |
 |---|---|---|
 | `EMS_SOC_MIN` | 20% | No descargar por debajo |
 | `EMS_SOC_TARGET` | 90% | Cargar hasta aquí cuando no hay carga |
@@ -269,68 +264,48 @@ Ubicación: `test/`. Se ejecutan en el host sin hardware con `pio test -e native
 
 | Suite | Cubre |
 |---|---|
-| `test_modbus` | CRC16, frame building, response parsing, escalas de registro |
-| `test_bms` | Decodificación de tramas CAN con valores reales del protocolo |
-| `test_ems` | Lógica de decisión EMS con mock de writeRegister |
+| `test_bms` | `bms_parse_modbus()` — parseo registros LWS con valores sintéticos |
+| `test_ems` | Lógica de decisión EMS con mock de `inverterSetPower` |
+| `test_inverter` | Escalas y parseo registros SP6030 |
 
-Los tests llaman directamente a las funciones `_core` de `lib/` — no duplican lógica.
-
-> Durante el desarrollo los tests detectaron un bug real: `setPower` usaba escala 0.01 en lugar de 0.1, lo que habría enviado setpoints 10× demasiado altos al inversor.
+Los tests usan directamente las funciones `_parser` de `lib/` — sin hardware, sin duplicar lógica.
 
 ---
 
 ## Sketches de prueba de hardware
 
-Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un subsistema sin el resto. Todos usan `config.h` para pines y direcciones, `credentials.h` para WiFi/token, y `lib/` para la lógica de protocolo.
+Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un subsistema. Todos usan `config.h` para pines y direcciones, `credentials.h` para WiFi/token.
 
-| Sketch | Display | WiFi/TB | Modbus | CAN | Propósito |
+| Sketch | Display | WiFi/TB | Inv Modbus | BMS Modbus | Propósito |
 |---|---|---|---|---|---|
 | `test_display` | ✓ dummy | — | — | — | Verificar pantalla y layout |
 | `test_mqtt` | — | ✓ dummy | — | — | Verificar WiFi y ThingsBoard |
-| `test_tb` | ✓ simulado | ✓ simulado | — | — | Construir y validar dashboard |
+| `test_tb` | ✓ simulado | ✓ simulado | — | — | Construir y validar dashboard TB |
 | `test_modbus_hw` | — | — | ✓ real | — | Verificar comunicación con inversor |
-| `test_can_hw` | — | — | — | ✓ real | Verificar comunicación con BMS |
 | `test_set_power` | — | ✓ real | ✓ real | — | Probar control de potencia end-to-end |
-| `test_dashboard` | ✓ real | ✓ real | flag | flag | Integración completa con HW real |
+| `test_dashboard` | ✓ real | ✓ real | ✓ real | ✓ real | Integración completa con HW real |
 
 ### test_display
-Cicla 3 pantallas cada 3s con datos hardcodeados: Status, Power Flow, Battery. Sin WiFi ni hardware. Verifica cableado del display y layout.
+Cicla 3 pantallas cada 3s con datos hardcodeados: Status, Power Flow, Battery (campos LWS completos). Sin WiFi ni hardware. Verifica cableado del display y layout.
 
 ### test_mqtt
-Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y responde RPCs. Sin Modbus ni CAN ni display. Verifica credenciales y conectividad de red.
+Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y responde RPCs. Sin Modbus ni display. Verifica credenciales y conectividad de red.
 
 ### test_tb
-Pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos los keys del firmware real. Usar para construir y ajustar el dashboard de ThingsBoard sin hardware.
+Pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos los keys del firmware real — inversor SP6030 + BMS LWS completos. Usar para construir y ajustar el dashboard de ThingsBoard sin hardware.
 
 ### test_modbus_hw
-Conecta al inversor via RS-485 y vuelca todos los bloques a Serial cada 5s con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Si todos los bloques fallan, el boot imprime qué verificar.
-
-### test_can_hw
-Escucha el bus CAN en modo normal (con ACK) e imprime los primeros 50 frames en hex crudo. Después imprime resumen decodificado en cada frame `0x4210+addr` y decode completo al primer frame válido.
+Conecta al inversor via RS-485 y vuelca todos los bloques a Serial cada 5s con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Instancia propia de `ModbusMaster` para diagnóstico granular. No requiere WiFi.
 
 ### test_set_power
-Prueba el control de potencia end-to-end: ThingsBoard knob → shared attribute `set_power` → reg 135 → telemetría de confirmación.
+Prueba el control de potencia end-to-end: ThingsBoard knob → shared attribute `set_power` → `inverterSetPower()` → telemetría de confirmación.
 
-Al arrancar: corre la secuencia de init del inversor (`inverter_run_init`), lee el `set_power` actual de ThingsBoard y lo aplica. Al cambiar el knob: aplica el nuevo valor inmediatamente.
+Al arrancar: corre `inverterInit()`, lee el `set_power` actual de ThingsBoard y lo aplica. Al cambiar el knob: aplica el nuevo valor inmediatamente.
 
-Rango del testbed: **−2 a +2 kW** (cambiar a −100/+100 para producción).
-
-Publica cada 5s:
-
-| Key | Descripción |
-|---|---|
-| `set_power_requested` | Valor recibido del knob |
-| `set_power_active` | Valor leído de vuelta del reg 135 |
-| `p_inv_kw` | Potencia AC de salida del inversor |
-| `dc_power_kw` | Potencia DC (batería) |
-| `dc_current_a` | Corriente DC — indicador más sensible |
-| `grid_p_kw` | Potencia importada de la red |
-| `load_p_kw` | Potencia consumida por la carga |
-
-Caso de prueba típico: `set_power=1`, carga=1kW → esperado `p_inv_kw≈1`, `grid_p_kw≈0`, `dc_current_a>0`.
+Rango del testbed: **−2 a +2 kW** (cambiar a −100/+100 para producción en `applySetPower()`).
 
 ### test_dashboard
-Firmware de integración completo: lee inversor y BMS via Modbus, publica a ThingsBoard, muestra en pantalla. Los dots en la pantalla de status se ponen verdes/rojos según si la última lectura fue exitosa. Sin datos simulados como fallback.
+Firmware de integración completo: lee inversor y BMS via Modbus, publica a ThingsBoard, muestra en pantalla. Los dots de status se ponen verdes/rojos según si la última lectura fue exitosa. Sin datos simulados como fallback.
 
 ---
 
@@ -351,6 +326,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 #define BMS_MODBUS_DEVICE_ID 51   // DIP switch del BMS (51–65)
 #define RS485_DE_RE_PIN      5    // GPIO5 — NO usar GPIO4 (LCD RST en Ideaspark)
 #define RS485_BAUD           115200
+
 #define TB_HOST              "thingsboard.cloud"
 #define TB_PORT              1883
 
@@ -367,7 +343,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 | Librería | Uso |
 |---|---|
 | PubSubClient (Nick O'Leary) | MQTT |
-| ArduinoJson (Benoit Blanchon) | JSON payload — usar v7 (`JsonDocument`) |
+| ArduinoJson v7 (Benoit Blanchon) | JSON payload — usar `JsonDocument` |
 | ModbusMaster (Doc Walker) | Modbus RTU sobre RS-485 |
 | Adafruit ST7789 + Adafruit GFX | Display |
 
@@ -387,7 +363,7 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 ### Hardware pendiente
 - Confirmar dirección Modbus del inversor via DIP switch → `MODBUS_DEVICE_ID` en `config.h`
 - Configurar BMS a 115200 bps antes de conectar al bus compartido
-- Confirmar `BMS_MODBUS_DEVICE_ID` (DIP switch en la batería)
+- Confirmar `BMS_MODBUS_DEVICE_ID` (DIP switch en la batería, rango 51–65)
 - Verificar firmware inversor RTU ≥ V3.0 (reg 19 ≥ 30) para registros de carga 200–213
 - Verificar los 150A de max DC current (regs 763/764) contra datasheet de la batería
 
