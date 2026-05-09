@@ -38,8 +38,8 @@ void readFirmwareVersion(PubSubClient& mqtt) {
 void inverterInit() {
     Serial.println("[Init] Configurando inversor...");
     modbusInit();
-    inverter_run_init(writeRegister, readRegisters);
-    Serial.println("[Init] Listo.");
+    bool ok = inverter_run_init(writeRegister, readRegisters);
+    Serial.printf("[Init] %s\n", ok ? "Listo." : "Advertencia: algún registro falló.");
 }
 
 void verifyAndReinit() {

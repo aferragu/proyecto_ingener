@@ -96,4 +96,4 @@ const InitCmd* inverter_init_sequence(uint8_t* count_out);
 
 // Run the full init sequence using the provided read/write functions.
 // Prints progress to Serial. Safe to call from any sketch or firmware.
-void inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn);
+bool inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn);

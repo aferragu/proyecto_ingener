@@ -356,8 +356,8 @@ void setup() {
         modbusInit();
         Serial.println("[Boot] RS-485 ready");
         Serial.println("[Boot] Running inverter init...");
-        inverter_run_init(writeRegister, readRegisters);
-        Serial.println("[Boot] Inverter init done");
+        bool initOk = inverter_run_init(writeRegister, readRegisters);
+        Serial.printf("[Boot] Inverter init %s\n", initOk ? "done" : "WARNING: some registers failed");
     }
 
     // CAN

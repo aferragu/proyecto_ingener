@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "inverter_core.h"
 #include "inverter_scales.h"
 
@@ -98,12 +99,11 @@ const InitCmd* inverter_init_sequence(uint8_t* count_out) {
     return seq;
 }
 
-void inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn) {
+bool inverter_run_init(WriteRegFn write_fn, ReadRegFn read_fn) {
     uint8_t count;
     const InitCmd* seq = inverter_init_sequence(&count);
-    for (uint8_t i = 0; i < count; i++) {
-        bool ok = write_fn(seq[i].reg, seq[i].val);
-        Serial.printf("[Init] reg %d = %d  (%s) → %s\n",
-                      seq[i].reg, seq[i].val, seq[i].name, ok ? "OK" : "FAIL");
-    }
+    bool ok = true;
+    for (uint8_t i = 0; i < count; i++)
+        ok &= write_fn(seq[i].reg, seq[i].val);
+    return ok;
 }

@@ -191,8 +191,8 @@ void setup() {
 
     Serial.println("[Boot] Running inverter init sequence...");
     modbusInit();
-    inverter_run_init(writeRegister, readRegisters);
-    Serial.println("[Boot] Inverter init done.");
+    bool initOk = inverter_run_init(writeRegister, readRegisters);
+    Serial.printf("[Boot] Inverter init %s\n", initOk ? "done" : "WARNING: some registers failed");
 
     connectWiFi();
     connectMQTT();
