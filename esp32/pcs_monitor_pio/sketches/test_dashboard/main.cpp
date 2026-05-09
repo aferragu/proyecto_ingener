@@ -73,7 +73,7 @@
 WiFiClient      wifiClient;
 PubSubClient    mqtt(wifiClient);
 Adafruit_ST7789 tft = Adafruit_ST7789(LCD_CS, LCD_DC, LCD_RST);
-BmsData         bmsData = {};
+// bmsData defined in lib/bms/src/bms.cpp — accessible via bms.h
 
 bool wifiOk   = false;
 bool mqttOk   = false;
