@@ -193,8 +193,8 @@ void screenBattery() {
         drawRow(3, "Voltage", buf);
         snprintf(buf, sizeof(buf), "%.1f A", bmsData.current_a);
         drawRow(4, "Current", buf, bmsData.current_a >= 0 ? C_OK : C_WARN);
-        snprintf(buf, sizeof(buf), "%.1f C", bmsData.temperature_c);
-        drawRow(5, "Temp", buf, bmsData.temperature_c > 35 ? C_WARN : C_VALUE);
+        snprintf(buf, sizeof(buf), "%.1f C", bmsData.temp_avg_c);
+        drawRow(5, "Temp avg", buf, bmsData.temp_avg_c > 35 ? C_WARN : C_VALUE);
     } else {
         tft.setTextColor(C_FAULT); tft.setTextSize(2);
         tft.setCursor(4, 50); tft.print("BMS");
