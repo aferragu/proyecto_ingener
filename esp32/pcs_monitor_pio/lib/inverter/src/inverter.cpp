@@ -30,10 +30,25 @@ static uint8_t _deRePin;
 static void preTransmission()  { digitalWrite(_deRePin, HIGH); }
 static void postTransmission() { digitalWrite(_deRePin, LOW);  }
 
+static const char* modbusErrorStr(uint8_t code) {
+    switch (code) {
+        case 0x01: return "illegal function";
+        case 0x02: return "illegal data address";
+        case 0x03: return "illegal data value";
+        case 0x04: return "slave device failure";
+        case 0xE0: return "invalid slave ID";
+        case 0xE1: return "invalid function";
+        case 0xE2: return "response timed out";
+        case 0xE3: return "invalid CRC";
+        default:   return "unknown error";
+    }
+}
+
 static bool inverterRead(uint16_t reg, uint16_t count, int16_t* out) {
     uint8_t result = inv.readHoldingRegisters(reg, count);
     if (result != ModbusMaster::ku8MBSuccess) {
-        Serial.printf("[Inverter] Read reg %d count %d failed: 0x%02X\n", reg, count, result);
+        Serial.printf("[Inverter] Read reg %d count %d failed: 0x%02X — %s\n",
+                      reg, count, result, modbusErrorStr(result));
         return false;
     }
     for (uint16_t i = 0; i < count; i++)
@@ -44,7 +59,8 @@ static bool inverterRead(uint16_t reg, uint16_t count, int16_t* out) {
 static bool inverterWrite(uint16_t reg, int16_t value) {
     uint8_t result = inv.writeSingleRegister(reg, (uint16_t)value);
     if (result != ModbusMaster::ku8MBSuccess) {
-        Serial.printf("[Inverter] Write reg %d = %d failed: 0x%02X\n", reg, value, result);
+        Serial.printf("[Inverter] Write reg %d = %d failed: 0x%02X — %s\n",
+                      reg, value, result, modbusErrorStr(result));
         return false;
     }
     return true;
