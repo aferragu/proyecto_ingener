@@ -1,3 +1,18 @@
+// =============================================================================
+// bms.cpp — Capa de hardware para BMS LWS
+//
+// Instancia propia de ModbusMaster (FC04 lectura — LWS usa Input Registers).
+// Protocolo: LWS Modbus Communication Protocol V1.36
+// Baud: 115200 (configurar en BMS antes de conectar al bus compartido)
+// Device ID: configurable en config.h (BMS_MODBUS_DEVICE_ID, default 51)
+//
+// Comparte el bus RS-485 con el inversor — mismo Serial2 y mismo pin DE/RE.
+// inverterInit() debe llamarse antes que bmsInit() para configurar el pin.
+//
+// API pública:
+//   bmsInit(serial, deRePin) — init Modbus, no requiere secuencia de arranque
+//   pollBMS(telemetry)       — lee todos los registros y publica telemetría
+// =============================================================================
 #include "bms.h"
 #include "bms_parser.h"
 #include "config.h"

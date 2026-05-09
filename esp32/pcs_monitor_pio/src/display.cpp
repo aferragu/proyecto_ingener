@@ -1,3 +1,20 @@
+// =============================================================================
+// display.cpp — TFT_eSPI display driver (pantalla vertical 135×240)
+//
+// Muestra estado del sistema en pantalla vertical usando TFT_eSPI.
+// Solo redibuja los valores que cambiaron para minimizar flicker.
+//
+// Layout (de arriba a abajo):
+//   Header fijo: "PCS INVERTER MONITOR"
+//   Estado inversor: badge RUNNING/FAULT/STOPPED + indicador MQTT
+//   Potencia inversor (kW)
+//   Potencia red (kW)
+//   Potencia carga (kW)
+//   DC: tensión (V) + corriente (A)
+//   Batería: SOC (%) + tensión (V) + corriente (A)
+//
+// Llamar displayInit() en setup() y displayUpdate(telemetry, mqttOk) en loop().
+// =============================================================================
 #include "display.h"
 #include "config.h"
 #include <TFT_eSPI.h>

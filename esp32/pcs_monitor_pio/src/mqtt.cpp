@@ -1,3 +1,12 @@
+// =============================================================================
+// mqtt.cpp — WiFi, MQTT y RPC handlers
+//
+// Maneja la conexión WiFi y ThingsBoard vía MQTT.
+// RPCs soportados:
+//   powerOn   — enciende el inversor (reg 650 = 1)
+//   shutdown  — apaga el inversor   (reg 650 = 0)
+//   setPower  — setpoint de potencia AC en kW (reg 135, rango -100..+100)
+// =============================================================================
 #include "mqtt.h"
 #include "config.h"
 #include "inverter.h"

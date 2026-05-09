@@ -1,20 +1,23 @@
 // =============================================================================
-// test_tb — Simulated telemetry → ThingsBoard + ST7789 display
+// test_tb — Telemetría simulada → ThingsBoard + display ST7789
 //
-// What it does:
-//   1. Connects WiFi and ThingsBoard
-//   2. Sends all telemetry keys the real firmware will send, with slowly
-//      drifting realistic values — use this to build the ThingsBoard dashboard
-//   3. Cycles the ST7789 display through 3 screens every 3s showing the same
-//      simulated data — use this to build and validate the display layout
+// Qué hace:
+//   1. Conecta WiFi y ThingsBoard
+//   2. Envía todos los keys de telemetría que manda el firmware real, con valores
+//      que derivan lentamente de forma realista — usalo para armar el dashboard TB
+//   3. Cicla el display ST7789 por 3 pantallas cada 3s con los mismos datos
+//      simulados — usalo para validar el layout del display
 //
-// No Modbus, no CAN, no hardware required beyond WiFi.
+// Simula: inversor SP6030 (AC, DC, grid, load) + BMS LWS (todos los campos)
+// No requiere hardware más allá de WiFi y el display.
 //
-// Pin mapping (Ideaspark ESP32 1.14" ST7789):
-//   GPIO23→MOSI, GPIO18→SCLK, GPIO15→CS, GPIO2→DC, GPIO4→RST, GPIO32→BLK
+// Wiring (Ideaspark ESP32 1.14" ST7789):
+//   GPIO23 → MOSI, GPIO18 → SCLK, GPIO15 → CS
+//   GPIO2  → DC,   GPIO4  → RST,  GPIO32 → BLK
 //
-// Credentials: fill in WIFI_SSID, WIFI_PASSWORD, TB_TOKEN below.
+// Credenciales: credentials.h
 // =============================================================================
+
 
 #include <Arduino.h>
 #include <WiFi.h>

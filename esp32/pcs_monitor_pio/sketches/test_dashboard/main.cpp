@@ -1,13 +1,24 @@
 // =============================================================================
-// test_dashboard — Real hardware telemetry → ThingsBoard + ST7789 display
+// test_dashboard — Telemetría real → ThingsBoard + display ST7789
 //
-// Reads inverter via Modbus (SinoSoar SP6030) and BMS via Modbus (LWS).
-// Publishes to ThingsBoard and cycles display through 3 screens.
+// Lee el inversor SinoSoar SP6030 y el BMS LWS vía Modbus RTU, publica
+// telemetría a ThingsBoard y muestra datos en pantalla ST7789.
+//
+// Pantallas:
+//   1 — Estado del sistema (dots WiFi/MQTT/Modbus/BMS, SOC, carga)
+//   2 — Flujo de potencia (inversor, red, carga, frecuencia, PF)
+//   3 — Batería (SOC barra, tensión, corriente, temperatura)
 //
 // Wiring:
-//   MAX485: GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485 / BMS RS-485
+//   MAX485 DI  → GPIO17
+//   MAX485 RO  → GPIO16
+//   MAX485 DE+RE → GPIO5
+//   MAX485 A/B → RS-485 bus (inversor + BMS en paralelo)
+//   ST7789 MOSI → GPIO23, SCLK → GPIO18, CS → GPIO15
+//   ST7789 DC   → GPIO2,  RST  → GPIO4,  BLK → GPIO32
 //
-// Pins and addresses from config.h. Credentials from credentials.h.
+// Device IDs: inversor = MODBUS_DEVICE_ID, BMS = BMS_MODBUS_DEVICE_ID (config.h)
+// Credenciales: credentials.h
 // =============================================================================
 
 #include <Arduino.h>
@@ -21,10 +32,6 @@
 #include "credentials.h"
 #include "inverter.h"
 #include "bms.h"
-
-// ---------------------------------------------------------------------------
-// Flags — set to 0 to disable a source
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // ThingsBoard

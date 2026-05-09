@@ -1,3 +1,16 @@
+// =============================================================================
+// ems.cpp — Energy Management System
+//
+// Lógica de control de potencia: decide el setpoint del inversor en función
+// del SOC de la batería, la carga AC y los límites del BMS.
+//
+// Estrategia:
+//   - SOC > SOC_MIN y carga > 0  → descarga batería hasta cubrir la carga
+//   - SOC < SOC_TARGET y carga < 5kW → carga batería desde red
+//   - BMS fault o forbidden       → setpoint = 0
+//
+// TODO: activar emsUpdate() en main.cpp cuando se valide la estrategia en hw.
+// =============================================================================
 #include "ems.h"
 #include "inverter.h"
 #include "bms.h"

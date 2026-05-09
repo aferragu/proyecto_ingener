@@ -1,15 +1,18 @@
 // =============================================================================
-// test_can_hw — Hardware sketch: CAN bus BMS → Serial debug
+// test_can_hw — OBSOLETO — diagnóstico CAN bus (Pylontech protocol)
 //
-// Listens on CAN bus and prints every raw frame received (hex dump).
-// Once valid BMS frames are detected, also prints decoded values
-// using bms_parser from lib/.
-// No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
+// NOTA: el proyecto migró el BMS a Modbus RTU (LWS protocol V1.36).
+//       Este sketch queda como referencia histórica pero NO compila
+//       porque bms_decode() fue eliminado al eliminar el soporte CAN.
 //
-// Wiring:
-//   MCP2515+TJA1050 or SN65HVD230: GPIO21→TX, GPIO22→RX
-//   CAN_H / CAN_L → BMS
+// Si necesitás volver a CAN, restaurar bms_parser con la función bms_decode()
+// del commit anterior al refactor de Modbus.
+//
+// Wiring original (ya no en uso):
+//   SN65HVD230 o similar: GPIO21→TX, GPIO22→RX
+//   CAN_H / CAN_L → BMS Pylontech high voltage
 // =============================================================================
+
 
 #include <Arduino.h>
 #include "config.h"

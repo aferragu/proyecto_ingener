@@ -1,22 +1,27 @@
 // =============================================================================
-// test_set_power — Shared attribute setPower → Modbus reg 135 → telemetry
+// test_set_power — Control de potencia vía ThingsBoard → inversor SinoSoar
 //
-// What it does:
-//   1. Connects WiFi and ThingsBoard
-//   2. On boot: requests current value of shared attribute "set_power" and applies it
-//   3. On change: receives notification when "set_power" changes and applies it
-//   4. Every 5s: polls inverter reg 135 (active setpoint), p_inv_kw, dc_power_kw,
-//      dc_current_a and publishes as telemetry
+// Qué hace:
+//   1. Conecta WiFi y ThingsBoard
+//   2. Al arrancar: lee el valor actual del shared attribute "set_power" y lo aplica
+//   3. Al cambiar: recibe notificación cuando "set_power" cambia y lo aplica
+//   4. Cada 5s: publica telemetría completa del inversor (AC, DC, grid, load)
+//      más set_power_requested para ver en dashboard qué se pidió
 //
-// ThingsBoard keys:
-//   Shared attribute (input):  set_power          [-100..+100 kW, 0.1 kW precision]
-//   Telemetry (output):        set_power_requested [kW, what was received from TB]
-//                              set_power_active    [kW, read back from inverter reg 135]
-//                              p_inv_kw            [kW, AC output power]
-//                              dc_power_kw         [kW, DC power]
-//                              dc_current_a        [A,  DC current]
+// ThingsBoard:
+//   Shared attribute (entrada): set_power  [kW, -100..+100, precisión 0.1kW]
+//                                          positivo = descarga batería
+//                                          negativo = carga batería
+//   Telemetría (salida): todos los keys de pollModbus() + set_power_requested
 //
-// Wiring: MAX485 GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485
+// Wiring:
+//   MAX485 DI    → GPIO17
+//   MAX485 RO    → GPIO16
+//   MAX485 DE+RE → GPIO5
+//   MAX485 A/B   → RS-485 bus → inversor SinoSoar SP6030
+//
+// Device ID: MODBUS_DEVICE_ID (config.h)
+// Credenciales: credentials.h
 // =============================================================================
 
 #include <Arduino.h>

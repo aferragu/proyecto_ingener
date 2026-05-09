@@ -1,3 +1,19 @@
+// =============================================================================
+// inverter.cpp — Capa de hardware para inversor SinoSoar SP6030
+//
+// Instancia propia de ModbusMaster (FC03 lectura, FC06 escritura).
+// Protocolo: SinoSoar PCS Modbus V3.0
+// Baud: 115200, device ID configurable en config.h (MODBUS_DEVICE_ID)
+//
+// API pública:
+//   inverterInit(serial, deRePin) — init Modbus y secuencia de arranque
+//   pollModbus(telemetry)         — lee todos los bloques de registros
+//   inverterSetPower(kw)          — escribe setpoint AC (reg 135, 0.1kW)
+//   inverterPowerOn()             — enciende inversor (reg 650 = 1)
+//   inverterShutdown()            — apaga inversor    (reg 650 = 0)
+//   verifyAndReinit()             — verifica y corrige registros de config
+//   readFirmwareVersion(mqtt)     — lee versión y publica como atributos TB
+// =============================================================================
 #include "inverter.h"
 #include "inverter_parser.h"
 #include "inverter_scales.h"

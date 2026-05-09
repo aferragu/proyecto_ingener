@@ -1,25 +1,21 @@
 // =============================================================================
 // test_display — Hardware sketch: Ideaspark ESP32 ST7789 135x240 screen
 //
-// What it does:
-//   Cycles through 3 screens every 3 seconds to verify the display works:
-//     Screen 1 — Boot / status screen (WiFi, MQTT indicators)
-//     Screen 2 — Inverter values (hardcoded dummy data)
-//     Screen 3 — BMS values (hardcoded dummy data)
+// Cicla por 3 pantallas cada 3 segundos para verificar que el display funciona:
+//   Pantalla 1 — Estado del sistema (dots de estado, uptime)
+//   Pantalla 2 — Valores del inversor (datos hardcodeados)
+//   Pantalla 3 — Valores de batería (datos hardcodeados, campos LWS completos)
 //
-// No WiFi, no Modbus, no CAN — pure display test.
-// Watch the screen. All three pages should cycle cleanly.
+// Sin WiFi, sin Modbus — test puro de display.
 //
-// Pin mapping (Ideaspark ESP32 1.14" ST7789, from official datasheet):
+// Wiring (Ideaspark ESP32 1.14" ST7789, del datasheet oficial):
 //   GPIO23 → MOSI
 //   GPIO18 → SCLK
 //   GPIO15 → CS
 //   GPIO2  → DC
-//   GPIO4  → RST   ← NOTE: conflicts with RS485_DE_RE in main firmware
+//   GPIO4  → RST   ← NOTA: en el firmware real GPIO4 es LCD RST del Ideaspark
+//                           No usar para RS-485 DE+RE (usar GPIO5 en su lugar)
 //   GPIO32 → BLK (backlight)
-//
-// Library: Adafruit ST7789 + Adafruit GFX
-// platformio.ini lib_deps: adafruit/Adafruit ST7789@^1.3, adafruit/Adafruit GFX Library@^1.11
 // =============================================================================
 
 #include <Arduino.h>
