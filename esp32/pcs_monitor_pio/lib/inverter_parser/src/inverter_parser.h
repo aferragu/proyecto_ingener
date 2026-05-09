@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 // =============================================================================
-// inverter_core — pure register decoding for SinoSoar SP6030
+// inverter_parser — pure register decoding for SinoSoar SP6030
 // No Arduino/ESP32 dependencies — safe to include in host unit tests.
 // Scale factors from: SinoSoar PCS Modbus Communication Protocol V3.0
 // =============================================================================

@@ -7,7 +7,7 @@
 // This mirrors what ems.cpp does — if the logic changes there, update here.
 // =============================================================================
 #include "unity.h"
-#include "bms_core.h"
+#include "bms_parser.h"
 #include "inverter_scales.h"
 #include <stdint.h>
 #include <string.h>

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "inverter_core.h"
+#include "inverter_parser.h"
 #include "inverter_scales.h"
 
 void inverter_parse_status(const int16_t* r, StatusData& o) {

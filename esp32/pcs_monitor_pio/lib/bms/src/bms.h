@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <ModbusMaster.h>
 #include <ArduinoJson.h>
-#include "bms_core.h"
+#include "bms_parser.h"
 
 extern BmsData bmsData;
 

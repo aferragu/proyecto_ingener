@@ -3,7 +3,7 @@
 //
 // Listens on CAN bus and prints every raw frame received (hex dump).
 // Once valid BMS frames are detected, also prints decoded values
-// using bms_core from lib/.
+// using bms_parser from lib/.
 // No WiFi, no ThingsBoard, no display — pure Serial diagnostics.
 //
 // Wiring:
@@ -13,7 +13,7 @@
 
 #include <Arduino.h>
 #include "config.h"
-#include "bms_core.h"
+#include "bms_parser.h"
 #include "bms_scales.h"
 #include "driver/twai.h"
 

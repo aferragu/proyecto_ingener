@@ -35,7 +35,7 @@
 #define VERIFY_INIT_MS   60000
 
 // Registros Modbus — SP6030 protocolo V3.0
-// Las definiciones de registros de control están en lib/inverter_core/src/inverter_core.h
+// Las definiciones de registros de control están en lib/inverter_parser/src/inverter_parser.h
 // Lectura
 #define REG_STATUS                  32
 #define REG_STATUS_COUNT             1

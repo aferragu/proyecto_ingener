@@ -1,4 +1,4 @@
-#include "bms_core.h"
+#include "bms_parser.h"
 #include "bms_scales.h"
 
 // Register offsets from BMS_REG_START (0x1000)

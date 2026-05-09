@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 // =============================================================================
-// bms_core — LWS BMS Modbus register parsing
+// bms_parser — LWS BMS Modbus register parsing
 // No Arduino/ESP-IDF dependencies — safe to include in host unit tests.
 // Protocol: LWS Modbus Communication Protocol V1.36
 // =============================================================================

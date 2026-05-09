@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <ModbusMaster.h>
 #include "config.h"
-#include "inverter_core.h"
+#include "inverter_parser.h"
 #include "inverter_scales.h"
 
 #define POLL_INTERVAL_MS 5000
