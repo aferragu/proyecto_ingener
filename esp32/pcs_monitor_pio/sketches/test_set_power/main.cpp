@@ -25,9 +25,7 @@
 #include <ArduinoJson.h>
 #include "config.h"
 #include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
-#include "modbus.h"
-#include "inverter_core.h"
-#include "inverter_scales.h"
+#include "inverter.h"
 
 // ---------------------------------------------------------------------------
 // ThingsBoard
@@ -57,12 +55,8 @@ bool  newSetpoint       = false;  // flag: apply setpoint on next loop
 void applySetPower(float kw) {
     // Clamp to testbed range — change to -100/100 for production
     kw = constrain(kw, -2.0f, 2.0f);
-
-    int16_t raw = (int16_t)(kw / SCALE_SET_POWER_KW);
-    bool ok = writeRegister(REG_SET_POWER, raw);
-
-    Serial.printf("[SetPower] %.1f kW → raw=%d → %s\n",
-                  kw, raw, ok ? "OK" : "FAIL");
+    inverterSetPower(kw);
+    Serial.printf("[SetPower] %.1f kW applied\n", kw);
 }
 
 // ---------------------------------------------------------------------------
@@ -121,64 +115,15 @@ void connectMQTT() {
 // ---------------------------------------------------------------------------
 void pollAndPublish() {
     JsonDocument doc;
-    bool anyOk = false;
 
-    // Read back reg 135 (active setpoint)
-    int16_t raw135 = 0;
-    if (readRegisters(REG_SET_POWER, 1, &raw135)) {
-        float active = raw135 * SCALE_SET_POWER_KW;
-        doc["set_power_requested"] = setPowerRequested;
-        doc["set_power_active"]    = active;
-        Serial.printf("[Poll] set_power: requested=%.1f active=%.1f kW\n",
-                      setPowerRequested, active);
-        anyOk = true;
-    } else Serial.println("[Poll] FAIL: reg 135 (set_power)");
+    // Use pollModbus for all inverter data
+    pollModbus(doc);
+    doc["set_power_requested"] = setPowerRequested;
 
-    // Read DC (reg 141–143)
-    int16_t dc_raw[3];
-    if (readRegisters(REG_DC_START, REG_DC_COUNT, dc_raw)) {
-        DcData dc; inverter_parse_dc(dc_raw, dc);
-        doc["dc_power_kw"]  = dc.power_kw;
-        doc["dc_current_a"] = dc.current_a;
-        Serial.printf("[Poll] DC: %.2fkW  %.1fA\n", dc.power_kw, dc.current_a);
-        anyOk = true;
-    } else Serial.println("[Poll] FAIL: reg 141 (DC)");
-
-    // Read AC total power (reg 100–125, only need p_inv)
-    int16_t ac_raw[26];
-    if (readRegisters(REG_AC_START, REG_AC_COUNT, ac_raw)) {
-        AcData ac; inverter_parse_ac(ac_raw, ac);
-        doc["p_inv_kw"] = ac.p_inv;
-        Serial.printf("[Poll] AC p_inv: %.2fkW\n", ac.p_inv);
-        anyOk = true;
-    } else Serial.println("[Poll] FAIL: reg 100 (AC)");
-
-    // Read Grid (reg 170–179 + 192)
-    int16_t grid_raw[10];
-    int16_t grid_p_raw = 0;
-    if (readRegisters(REG_GRID_START, REG_GRID_COUNT, grid_raw) &&
-        readRegisters(REG_GRID_POWER, 1, &grid_p_raw)) {
-        GridData g; inverter_parse_grid(grid_raw, grid_p_raw, g);
-        doc["grid_p_kw"] = g.p_kw;
-        Serial.printf("[Poll] Grid: %.2fkW\n", g.p_kw);
-        anyOk = true;
-    } else Serial.println("[Poll] FAIL: reg 170/192 (grid)");
-
-    // Read Load (reg 200–213, V3.0+)
-    int16_t load_raw[14];
-    if (readRegisters(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
-        LoadData l; inverter_parse_load(load_raw, l);
-        doc["load_p_kw"] = l.p_total;
-        Serial.printf("[Poll] Load: %.2fkW\n", l.p_total);
-        anyOk = true;
-    } else Serial.println("[Poll] FAIL: reg 200 (load)");
-
-    if (anyOk) {
-        char payload[512];
-        serializeJson(doc, payload, sizeof(payload));
-        bool ok = mqtt.publish(TOPIC_TELEMETRY, payload);
-        Serial.printf("[MQTT] Publish %s (%d bytes)\n", ok ? "OK" : "FAIL", strlen(payload));
-    }
+    char payload[2048];
+    serializeJson(doc, payload, sizeof(payload));
+    bool ok = mqtt.publish(TOPIC_TELEMETRY, payload);
+    Serial.printf("[MQTT] Publish %s (%d bytes)\n", ok ? "OK" : "FAIL", strlen(payload));
 }
 
 // ---------------------------------------------------------------------------
@@ -189,10 +134,8 @@ void setup() {
     delay(500);
     Serial.println("\n[Boot] test_set_power starting...");
 
-    Serial.println("[Boot] Running inverter init sequence...");
-    modbusInit();
-    bool initOk = inverter_run_init(writeRegister, readRegisters);
-    Serial.printf("[Boot] Inverter init %s\n", initOk ? "done" : "WARNING: some registers failed");
+    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    inverterInit(Serial2, RS485_DE_RE_PIN);
 
     connectWiFi();
     connectMQTT();

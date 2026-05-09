@@ -2,15 +2,15 @@
 // PCS Inverter Monitor — ESP32
 //
 // Modbus RTU RS-485 → inversor SinoSoar SP6030 (protocolo V3.0)
-// CAN bus (TWAI)    → BMS Pylontech high voltage (protocolo V1.24)
+// Modbus RTU RS-485 → BMS LWS (protocolo V1.36)
 // WiFi MQTT         → ThingsBoard thingsboard.cloud
 //
-// Librerías (Arduino Library Manager):
+// Librerías:
 //   - PubSubClient  (Nick O'Leary)
 //   - ArduinoJson   (Benoit Blanchon)
+//   - ModbusMaster  (Doc Walker)
 //
-// Conexiones MAX485:  GPIO17→DI, GPIO16→RO, GPIO4→DE+RE
-// Conexiones CAN:     GPIO21→TX, GPIO22→RX
+// Conexiones MAX485:  GPIO17→DI, GPIO16→RO, GPIO5→DE+RE
 // LED status:         GPIO2 (activo en LOW)
 //
 // RPCs: powerOn, shutdown, setPower {"value": X}
@@ -18,7 +18,6 @@
 
 #include <Arduino.h>
 #include "config.h"
-#include "modbus.h"
 #include "inverter.h"
 #include "bms.h"
 #include "mqtt.h"
@@ -28,7 +27,7 @@
 StaticJsonDocument<2048> telemetry;
 
 unsigned long lastModbusMs  = 0;
-unsigned long lastCanMs     = 0;
+unsigned long lastBmsMs     = 0;
 unsigned long lastPublishMs = 0;
 unsigned long lastVerifyMs  = 0;
 
@@ -39,19 +38,22 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     LED_OFF();
 
-    initCAN();
-    initBMS();
+    // RS-485 — shared bus for inverter and BMS
+    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+
+    inverterInit(Serial2, RS485_DE_RE_PIN);
+    bmsInit(Serial2, RS485_DE_RE_PIN);
+
     connectWiFi();
     connectMQTT();
     readFirmwareVersion(mqttClient);
-    inverterInit();
 
     pollModbus(telemetry);
-    pollCAN(telemetry);
+    pollBMS(telemetry);
     publishTelemetry(telemetry);
 
     lastModbusMs  = millis();
-    lastCanMs     = millis();
+    lastBmsMs     = millis();
     lastPublishMs = millis();
     lastVerifyMs  = millis();
 
@@ -82,9 +84,9 @@ void loop() {
         emsUpdate(telemetry);
     }
 
-    if (now - lastCanMs >= POLL_CAN_MS) {
-        lastCanMs = now;
-        pollCAN(telemetry);
+    if (now - lastBmsMs >= POLL_BMS_MS) {
+        lastBmsMs = now;
+        pollBMS(telemetry);
     }
 
     if (now - lastPublishMs >= PUBLISH_MS) {

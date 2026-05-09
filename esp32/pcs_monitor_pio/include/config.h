@@ -20,11 +20,8 @@
                                 // and cannot be used for RS-485. Wire MAX485 DE+RE to GPIO5.
 #define MODBUS_DEVICE_ID 1      // Dirección DIP switch del inversor (1-247)
 
-// CAN / BMS
-#define CAN_TX_PIN       GPIO_NUM_21
-#define CAN_RX_PIN       GPIO_NUM_22
-#define CAN_SPEED        TWAI_TIMING_CONFIG_500KBITS()  // confirmed 500kbps from CANalyzer capture
-#define BMS_CAN_ADDR     1      // Dirección del BMS (1-15), embebida en CAN ID
+// BMS Modbus
+#define BMS_MODBUS_DEVICE_ID  51    // Dirección DIP switch del BMS (51-65)
 
 // LED de status — GPIO2 (LED integrado NodeMCU, activo en LOW)
 #define LED_PIN          2
@@ -33,7 +30,7 @@
 
 // Intervalos de polling (ms)
 #define POLL_MODBUS_MS   5000
-#define POLL_CAN_MS      1000
+#define POLL_BMS_MS      2000
 #define PUBLISH_MS       10000
 #define VERIFY_INIT_MS   60000
 

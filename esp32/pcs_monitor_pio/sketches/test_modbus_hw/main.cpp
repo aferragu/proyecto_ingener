@@ -10,97 +10,83 @@
 // =============================================================================
 
 #include <Arduino.h>
+#include <ModbusMaster.h>
 #include "config.h"
-#include "modbus.h"
 #include "inverter_core.h"
 #include "inverter_scales.h"
 
 #define POLL_INTERVAL_MS 5000
 
-// ---------------------------------------------------------------------------
-// Poll and print
-// ---------------------------------------------------------------------------
+static ModbusMaster node;
+
+static void preTransmission()  { digitalWrite(RS485_DE_RE_PIN, HIGH); }
+static void postTransmission() { digitalWrite(RS485_DE_RE_PIN, LOW);  }
+
+static bool inv_read(uint16_t reg, uint16_t count, int16_t* out) {
+    uint8_t r = node.readHoldingRegisters(reg, count);
+    if (r != ModbusMaster::ku8MBSuccess) {
+        Serial.printf("  [FAIL 0x%02X]\n", r);
+        return false;
+    }
+    for (uint16_t i = 0; i < count; i++)
+        out[i] = (int16_t)node.getResponseBuffer(i);
+    return true;
+}
+
+static bool inv_write(uint16_t reg, int16_t value) {
+    uint8_t r = node.writeSingleRegister(reg, (uint16_t)value);
+    return r == ModbusMaster::ku8MBSuccess;
+}
+
 void pollAndPrint() {
     int16_t raw[26];
     Serial.println("\n========================================");
     Serial.printf("Poll @ %lums\n", millis());
     Serial.println("========================================");
 
-    if (readRegisters(REG_STATUS, REG_STATUS_COUNT, raw)) {
+    if (inv_read(REG_STATUS, REG_STATUS_COUNT, raw)) {
         StatusData s; inverter_parse_status(raw, s);
         Serial.println("\n[Status]");
-        Serial.printf("  running   = %d\n", s.running);
-        Serial.printf("  grid_tied = %d\n", s.grid_tied);
-        Serial.printf("  off_grid  = %d\n", s.off_grid);
-        Serial.printf("  standby   = %d\n", s.standby);
-        Serial.printf("  derating  = %d\n", s.derating);
-        Serial.printf("  alarm     = %d\n", s.alarm);
-        Serial.printf("  fault     = %d\n", s.fault);
-        Serial.printf("  raw       = 0x%04X\n", (uint16_t)raw[0]);
-    } else Serial.println("\n[Status] FAIL — no response");
+        Serial.printf("  running=%d  grid_tied=%d  off_grid=%d  standby=%d\n",
+                      s.running, s.grid_tied, s.off_grid, s.standby);
+        Serial.printf("  derating=%d  alarm=%d  fault=%d  raw=0x%04X\n",
+                      s.derating, s.alarm, s.fault, (uint16_t)raw[0]);
+    } else Serial.println("\n[Status] FAIL");
 
-    if (readRegisters(REG_AC_START, REG_AC_COUNT, raw)) {
+    if (inv_read(REG_AC_START, REG_AC_COUNT, raw)) {
         AcData ac; inverter_parse_ac(raw, ac);
-        Serial.println("\n[AC Inverter]");
-        Serial.printf("  freq_hz   = %.2f Hz\n",   ac.freq_hz);
-        Serial.printf("  v_ab      = %.1f V\n",    ac.v_ab);
-        Serial.printf("  v_bc      = %.1f V\n",    ac.v_bc);
-        Serial.printf("  v_ca      = %.1f V\n",    ac.v_ca);
-        Serial.printf("  v_a       = %.1f V\n",    ac.v_a);
-        Serial.printf("  v_b       = %.1f V\n",    ac.v_b);
-        Serial.printf("  v_c       = %.1f V\n",    ac.v_c);
-        Serial.printf("  i_a       = %.1f A\n",    ac.i_a);
-        Serial.printf("  i_b       = %.1f A\n",    ac.i_b);
-        Serial.printf("  i_c       = %.1f A\n",    ac.i_c);
-        Serial.printf("  p_inv_kw  = %.2f kW\n",   ac.p_inv);
-        Serial.printf("  q_inv     = %.2f kVAR\n", ac.q_inv);
-        Serial.printf("  pf_total  = %.2f\n",      ac.pf_total);
-    } else Serial.println("\n[AC] FAIL — no response");
+        Serial.println("\n[AC]");
+        Serial.printf("  freq=%.2fHz  v_a=%.1fV  v_ab=%.1fV\n", ac.freq_hz, ac.v_a, ac.v_ab);
+        Serial.printf("  i_a=%.1fA  p_inv=%.2fkW  pf=%.2f\n", ac.i_a, ac.p_inv, ac.pf_total);
+    } else Serial.println("\n[AC] FAIL");
 
-    if (readRegisters(REG_DC_START, REG_DC_COUNT, raw)) {
+    if (inv_read(REG_DC_START, REG_DC_COUNT, raw)) {
         DcData dc; inverter_parse_dc(raw, dc);
         Serial.println("\n[DC]");
-        Serial.printf("  dc_power_kw  = %.2f kW\n", dc.power_kw);
-        Serial.printf("  dc_voltage_v = %.1f V\n",  dc.voltage_v);
-        Serial.printf("  dc_current_a = %.1f A\n",  dc.current_a);
-    } else Serial.println("\n[DC] FAIL — no response");
+        Serial.printf("  v=%.1fV  i=%.1fA  p=%.2fkW\n", dc.voltage_v, dc.current_a, dc.power_kw);
+    } else Serial.println("\n[DC] FAIL");
 
     int16_t grid_p_raw = 0;
-    if (readRegisters(REG_GRID_START, REG_GRID_COUNT, raw) &&
-        readRegisters(REG_GRID_POWER, 1, &grid_p_raw)) {
+    if (inv_read(REG_GRID_START, REG_GRID_COUNT, raw) &&
+        inv_read(REG_GRID_POWER, 1, &grid_p_raw)) {
         GridData g; inverter_parse_grid(raw, grid_p_raw, g);
         Serial.println("\n[Grid]");
-        Serial.printf("  grid_freq_hz = %.2f Hz\n", g.freq_hz);
-        Serial.printf("  grid_v_a     = %.1f V\n",  g.v_a);
-        Serial.printf("  grid_v_b     = %.1f V\n",  g.v_b);
-        Serial.printf("  grid_v_c     = %.1f V\n",  g.v_c);
-        Serial.printf("  grid_p_kw    = %.2f kW\n", g.p_kw);
-    } else Serial.println("\n[Grid] FAIL — no response");
+        Serial.printf("  freq=%.2fHz  v_a=%.1fV  p=%.2fkW\n", g.freq_hz, g.v_a, g.p_kw);
+    } else Serial.println("\n[Grid] FAIL");
 
-    if (readRegisters(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
+    if (inv_read(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
         LoadData l; inverter_parse_load(raw, l);
         Serial.println("\n[Load]");
-        Serial.printf("  load_freq_hz = %.2f Hz\n",  l.freq_hz);
-        Serial.printf("  load_v_a     = %.1f V\n",   l.v_a);
-        Serial.printf("  load_v_b     = %.1f V\n",   l.v_b);
-        Serial.printf("  load_v_c     = %.1f V\n",   l.v_c);
-        Serial.printf("  load_i_a     = %.1f A\n",   l.i_a);
-        Serial.printf("  load_i_b     = %.1f A\n",   l.i_b);
-        Serial.printf("  load_i_c     = %.1f A\n",   l.i_c);
-        Serial.printf("  load_p_kw    = %.2f kW\n",  l.p_total);
-        Serial.printf("  load_s_kva   = %.2f kVA\n", l.s_total);
-    } else Serial.println("\n[Load] FAIL — no response (requires firmware RTU >= V3.0)");
+        Serial.printf("  p=%.2fkW  s=%.2fkVA\n", l.p_total, l.s_total);
+    } else Serial.println("\n[Load] FAIL (requires RTU V3.0+)");
 
-    Serial.println("\n[Raw] Registers 0–9 (firmware info):");
-    if (readRegisters(REG_VERSION_START, 10, raw)) {
+    Serial.println("\n[Version regs 0-9]");
+    if (inv_read(REG_VERSION_START, 10, raw))
         for (int i = 0; i < 10; i++)
-            Serial.printf("  reg %2d = %6d  (0x%04X)\n", i, raw[i], (uint16_t)raw[i]);
-    } else Serial.println("  FAIL");
+            Serial.printf("  reg %2d = %6d (0x%04X)\n", i, raw[i], (uint16_t)raw[i]);
+    else Serial.println("  FAIL");
 }
 
-// ---------------------------------------------------------------------------
-// Setup / Loop
-// ---------------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
     delay(500);
@@ -108,8 +94,17 @@ void setup() {
     Serial.printf("[Boot] Device ID: %d  Baud: %d  DE/RE: GPIO%d\n",
                   MODBUS_DEVICE_ID, RS485_BAUD, RS485_DE_RE_PIN);
 
-    modbusInit();
-    Serial.println("[Boot] RS-485 + ModbusMaster ready — polling every 5s");
+    pinMode(RS485_DE_RE_PIN, OUTPUT);
+    digitalWrite(RS485_DE_RE_PIN, LOW);
+    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    node.begin(MODBUS_DEVICE_ID, Serial2);
+    node.preTransmission(preTransmission);
+    node.postTransmission(postTransmission);
+
+    Serial.println("[Boot] Running inverter init...");
+    bool ok = inverter_run_init(inv_write, inv_read);
+    Serial.printf("[Boot] Init %s\n", ok ? "OK" : "WARNING: some registers failed");
+    Serial.println("[Boot] Polling every 5s");
 }
 
 void loop() {

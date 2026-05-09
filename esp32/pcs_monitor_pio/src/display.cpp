@@ -30,6 +30,13 @@ static float    last_grid_p    = -9999;
 static float    last_load_p    = -9999;
 static float    last_dc_v      = -9999;
 static float    last_dc_i      = -9999;
+// BMS
+static float    last_bms_soc   = -9999;
+static float    last_bms_v     = -9999;
+static float    last_bms_i     = -9999;
+static float    last_bms_temp  = -9999;
+
+void displayInit() {
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,5 +178,32 @@ void displayUpdate(JsonDocument& telemetry, bool mqttConnected) {
         tft.fillRect(70, 180, 65, 20, C_BG);
         drawValue(70, 180, dc_i, 1, "A");
         last_dc_i = dc_i;
+    }
+
+    drawHLine(204);
+
+    // — Fila 6: BMS —
+    float bms_soc  = telemetry["bms_soc_pct"]   | 0.0f;
+    float bms_v    = telemetry["bms_voltage_v"]  | 0.0f;
+    float bms_i    = telemetry["bms_current_a"]  | 0.0f;
+    float bms_temp = telemetry["bms_temp_avg_c"] | 0.0f;
+
+    drawLabel(5, 210, "BATERIA");
+    if (bms_soc != last_bms_soc) {
+        tft.fillRect(5, 220, 130, 16, C_BG);
+        uint16_t col = bms_soc > 50 ? C_OK : (bms_soc > 20 ? C_WARN : C_FAULT);
+        drawValue(5, 220, bms_soc, 1, "% SOC", col);
+        last_bms_soc = bms_soc;
+    }
+    if (bms_v != last_bms_v) {
+        tft.fillRect(5, 236, 65, 16, C_BG);
+        drawValue(5, 236, bms_v, 1, "V");
+        last_bms_v = bms_v;
+    }
+    if (bms_i != last_bms_i) {
+        tft.fillRect(70, 236, 65, 16, C_BG);
+        uint16_t col = bms_i > 0 ? C_OK : (bms_i < 0 ? C_WARN : C_VALUE);
+        drawValue(70, 236, bms_i, 1, "A", col);
+        last_bms_i = bms_i;
     }
 }

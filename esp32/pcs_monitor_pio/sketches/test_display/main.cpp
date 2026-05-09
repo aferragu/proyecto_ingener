@@ -142,16 +142,16 @@ void screenBMS() {
     tft.setCursor(4, 28);
     tft.printf("SOC: %d%%", soc);
 
-    // Bar background
     tft.drawRect(4, 52, 180, 14, COLOR_LABEL);
-    // Bar fill — colour changes by SOC
     uint16_t barColor = soc > 50 ? COLOR_OK : (soc > 20 ? COLOR_WARN : COLOR_FAULT);
     tft.fillRect(5, 53, (int)(180 * soc / 100.0f), 12, barColor);
 
-    drawRow(3, "Voltage",  "496.0 V");
-    drawRow(4, "Current",  "40.0 A",  COLOR_OK);
-    drawRow(5, "Temp",     "24.5 C");
-    drawRow(6, "SOH",      "98%",     COLOR_OK);
+    drawRow(3, "Voltage",    "496.0 V");
+    drawRow(4, "Current",    "40.0 A",   COLOR_OK);
+    drawRow(5, "Temp avg",   "24.5 C");
+    drawRow(6, "Temp max",   "26.5 C");
+    drawRow(7, "Cell V max", "3.310 V");
+    drawRow(8, "Cell V min", "3.280 V");
 }
 
 // ---------------------------------------------------------------------------

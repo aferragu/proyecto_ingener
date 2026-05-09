@@ -1,73 +1,49 @@
 #pragma once
 
 // =============================================================================
-// bms_scales.h — CAN frame scale factors for Pylontech high-voltage BMS
-// Source: CANBus Protocol Pylontech High Voltage V1.24
+// bms_scales.h — Modbus register scale factors for LWS BMS
+// Protocol: LWS Modbus Communication Protocol V1.36
 //
-// Usage: physical_value = (raw_uint16 * SCALE_xxx) - OFFSET_xxx
-// All raw values are uint16 assembled from two consecutive bytes (big-endian).
+// Usage: physical = (int16_t)raw * SCALE_xxx
+// All registers are 2 bytes, high byte first.
 // =============================================================================
 
-// --- 0x421: Ensemble information ---
+// 0x1000 — Total battery pack voltage (UINT16, 0.01 V)
+#define BMS_SCALE_VOLTAGE_V         0.01f
 
-// Bytes 0-1: Battery pack total voltage
-// Precision: 0.1 V, Offset: 0
-#define BMS_SCALE_VOLTAGE_V         0.1f
-#define BMS_OFFSET_VOLTAGE_V        0.0f
+// 0x1001 — Battery pack current (INT16, 0.01 A, discharge = negative)
+#define BMS_SCALE_CURRENT_A         0.01f
 
-// Bytes 2-3: Battery pack current (positive = charging, negative = discharging)
-// Precision: 0.1 A, Offset: -3000 A  (0x7530 = 30000 raw → 0 A)
-#define BMS_SCALE_CURRENT_A         0.1f
-#define BMS_OFFSET_CURRENT_A        3000.0f
-
-// Bytes 4-5: BMS temperature (second-level BMS / master controller)
-// Precision: 0.1 °C, Offset: -100 °C  (0x03E8 = 1000 raw → 0 °C)
+// 0x1003 — Average cell temperature (INT16, 0.1 °C)
+// 0x1010 — Max cell temperature     (INT16, 0.1 °C)
+// 0x1011 — Min cell temperature     (INT16, 0.1 °C)
+// 0x1012 — FET temperature          (INT16, 0.1 °C)
 #define BMS_SCALE_TEMP_C            0.1f
-#define BMS_OFFSET_TEMP_C           100.0f
 
-// Byte 6: State of Charge
-// Precision: 1 %, Offset: 0
-#define BMS_SCALE_SOC_PCT           1
+// 0x1008 — SOC (UINT16, 0.1 %)
+// 0x1009 — SOH (UINT16, 0.1 %)
+#define BMS_SCALE_SOC_PCT           0.1f
 
-// Byte 7: State of Health
-// Precision: 1 %, Offset: 0
-#define BMS_SCALE_SOH_PCT           1
+// 0x100C — Max charging current (UINT16, 0.01 A)
+#define BMS_SCALE_MAX_CHG_A         0.01f
 
-// --- 0x422: Charge/discharge limits ---
+// 0x100D — Max cell voltage (UINT16, 0.001 V)
+// 0x100E — Min cell voltage (UINT16, 0.001 V)
+#define BMS_SCALE_CELL_VOLTAGE_V    0.001f
 
-// Bytes 0-1: Charge cutoff voltage
-// Precision: 0.1 V, Offset: 0
-#define BMS_SCALE_CUTOFF_V          0.1f
-#define BMS_OFFSET_CUTOFF_V         0.0f
+// 0x101D — Total voltage overcharge protection on  (UINT16, 0.01 V) → charge cutoff
+// 0x1020 — Total voltage overdischarge protection on (UINT16, 0.01 V) → discharge cutoff
+#define BMS_SCALE_CUTOFF_V          0.01f
 
-// Bytes 2-3: Discharge cutoff voltage
-// Same scale as charge cutoff
-
-// Bytes 4-5: Max charge current
-// Precision: 0.1 A, Offset: -3000 A  (same encoding as pack current)
+// 0x2500 — Max charging current  (UINT16, 100 mA units → A)
+// 0x2501 — Max discharge current (UINT16, 100 mA units → A)
 #define BMS_SCALE_MAX_CURRENT_A     0.1f
-#define BMS_OFFSET_MAX_CURRENT_A    3000.0f
 
-// Bytes 6-7: Max discharge current
-// Same scale as max charge current
+// 0x1007 byte1 bit definitions
+#define BMS_STATUS_CHARGING_BIT     0   // bit 0: charging status
+#define BMS_STATUS_DISCHARGING_BIT  1   // bit 1: discharging status
+#define BMS_STATUS_CHG_MOS_BIT      2   // bit 2: charge MOSFET on (0=forbidden)
+#define BMS_STATUS_DISCHG_MOS_BIT   3   // bit 3: discharge MOSFET on (0=forbidden)
 
-// --- 0x425: Status, fault, alarm, protection ---
-// No scaling — bitfields, decoded by masking (see bms_core.h)
-
-// Byte 0, bits 2:0 — operating status
-//   0 = Sleep, 1 = Charge, 2 = Discharge, 3 = Idle
-// Byte 0, bit 3 — forced charge request
-// Byte 0, bit 4 — balance charge request
-// Byte 1         — fault byte (see protocol Table 2)
-// Bytes 2-3      — alarm word (see protocol Table 3)
-// Bytes 4-5      — protection word (see protocol Table 4)  (note: byte 6-7 in protocol)
-
-// --- 0x428: Forbidden flags and SOE ---
-
-// Byte 0: Charge forbidden    — 0xAA = forbidden, any other value = allowed
-// Byte 1: Discharge forbidden — 0xAA = forbidden, any other value = allowed
-// Byte 2: Heartbeat counter   — increments each response (not stored in BmsData)
-// Byte 3: State of Energy available (dischargeable energy percentage)
-// Precision: 1 %, Offset: 0
-#define BMS_SCALE_SOE_PCT           1
-#define BMS_FORBIDDEN_MARK          0xAA
+// 0x1005 byte1 bit3: low SOC alarm → force charge request
+#define BMS_ALARM_LOW_SOC_BIT       3

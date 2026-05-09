@@ -1,19 +1,11 @@
 // =============================================================================
 // test_dashboard — Real hardware telemetry → ThingsBoard + ST7789 display
 //
-// Same structure as test_tb but reads from real hardware instead of simulation.
-// Use flags to enable/disable each source independently.
-//
-// Flags:
-//   MODBUS_ENABLED  — read inverter via RS-485. If 0, inverter keys not published.
-//   CAN_ENABLED     — read BMS via CAN.       If 0, BMS keys not published.
-//
-// Display shows same 3 screens as test_tb with real values.
-// Status screen shows red/green dots per source so you know what's working.
+// Reads inverter via Modbus (SinoSoar SP6030) and BMS via Modbus (LWS).
+// Publishes to ThingsBoard and cycles display through 3 screens.
 //
 // Wiring:
-//   MAX485: GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485
-//   CAN:    GPIO21→TX, GPIO22→RX, CAN_H/CAN_L→BMS
+//   MAX485: GPIO17→DI, GPIO16→RO, GPIO5→DE+RE, A/B→inverter RS-485 / BMS RS-485
 //
 // Pins and addresses from config.h. Credentials from credentials.h.
 // =============================================================================
@@ -26,19 +18,13 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
 #include "config.h"
-#include "credentials.h"   // WIFI_SSID, WIFI_PASSWORD, TB_ACCESS_TOKEN
-#include "modbus.h"
-#include "inverter_core.h"
-#include "inverter_scales.h"
-#include "bms_core.h"
-#include "bms_scales.h"
-#include "driver/twai.h"
+#include "credentials.h"
+#include "inverter.h"
+#include "bms.h"
 
 // ---------------------------------------------------------------------------
 // Flags — set to 0 to disable a source
 // ---------------------------------------------------------------------------
-#define MODBUS_ENABLED   1
-#define CAN_ENABLED      0
 
 // ---------------------------------------------------------------------------
 // ThingsBoard
@@ -94,6 +80,10 @@ float disp_load_p  = 0.0f;
 float disp_freq    = 0.0f;
 float disp_v_a     = 0.0f;
 float disp_pf      = 0.0f;
+float disp_soc     = 0.0f;
+float disp_bms_v   = 0.0f;
+float disp_bms_i   = 0.0f;
+float disp_bms_t   = 0.0f;
 
 // ---------------------------------------------------------------------------
 // Display helpers
@@ -236,106 +226,6 @@ void connectMQTT() {
 // ---------------------------------------------------------------------------
 // Poll inverter
 // ---------------------------------------------------------------------------
-void pollInverter(JsonDocument& doc) {
-    if (!MODBUS_ENABLED) return;
-
-    int16_t raw[26];
-    bool anyOk = false;
-
-    if (readRegisters(REG_STATUS, REG_STATUS_COUNT, raw)) {
-        anyOk = true;
-        StatusData s; inverter_parse_status(raw, s);
-        doc["fault"]     = s.fault;
-        doc["alarm"]     = s.alarm;
-        doc["running"]   = s.running;
-        doc["grid_tied"] = s.grid_tied;
-        doc["off_grid"]  = s.off_grid;
-        doc["standby"]   = s.standby;
-        Serial.printf("[Modbus] Status: running=%d grid=%d fault=%d\n",
-                      s.running, s.grid_tied, s.fault);
-    } else Serial.println("[Modbus] FAIL: reg 32");
-
-    if (readRegisters(REG_AC_START, REG_AC_COUNT, raw)) {
-        anyOk = true;
-        AcData ac; inverter_parse_ac(raw, ac);
-        doc["freq_hz"]    = ac.freq_hz;
-        doc["v_a"]        = ac.v_a;  doc["v_b"] = ac.v_b;  doc["v_c"] = ac.v_c;
-        doc["v_ab"]       = ac.v_ab; doc["v_bc"]= ac.v_bc; doc["v_ca"]= ac.v_ca;
-        doc["i_a"]        = ac.i_a;  doc["i_b"] = ac.i_b;  doc["i_c"] = ac.i_c;
-        doc["p_a_kw"]     = ac.p_a;  doc["p_b_kw"]= ac.p_b; doc["p_c_kw"]= ac.p_c;
-        doc["p_inv_kw"]   = ac.p_inv;
-        doc["q_inv_kvar"] = ac.q_inv;
-        doc["pf_total"]   = ac.pf_total;
-        disp_p_inv = ac.p_inv; disp_freq = ac.freq_hz;
-        disp_v_a   = ac.v_a;  disp_pf   = ac.pf_total;
-        Serial.printf("[Modbus] AC: %.1fV %.2fkW PF=%.2f\n", ac.v_a, ac.p_inv, ac.pf_total);
-    } else Serial.println("[Modbus] FAIL: reg 100");
-
-    if (readRegisters(REG_DC_START, REG_DC_COUNT, raw)) {
-        anyOk = true;
-        DcData dc; inverter_parse_dc(raw, dc);
-        doc["dc_power_kw"]  = dc.power_kw;
-        doc["dc_voltage_v"] = dc.voltage_v;
-        doc["dc_current_a"] = dc.current_a;
-    } else Serial.println("[Modbus] FAIL: reg 141");
-
-    int16_t grid_p_raw = 0;
-    if (readRegisters(REG_GRID_START, REG_GRID_COUNT, raw) &&
-        readRegisters(REG_GRID_POWER, 1, &grid_p_raw)) {
-        anyOk = true;
-        GridData g; inverter_parse_grid(raw, grid_p_raw, g);
-        doc["grid_freq_hz"] = g.freq_hz;
-        doc["grid_v_a"]     = g.v_a; doc["grid_v_b"]= g.v_b; doc["grid_v_c"]= g.v_c;
-        doc["grid_p_kw"]    = g.p_kw;
-        disp_grid_p = g.p_kw;
-        Serial.printf("[Modbus] Grid: %.1fHz %.2fkW\n", g.freq_hz, g.p_kw);
-    } else Serial.println("[Modbus] FAIL: reg 170/192");
-
-    if (readRegisters(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
-        anyOk = true;
-        LoadData l; inverter_parse_load(raw, l);
-        doc["load_p_kw"]  = l.p_total;
-        doc["load_s_kva"] = l.s_total;
-        disp_load_p = l.p_total;
-        Serial.printf("[Modbus] Load: %.2fkW\n", l.p_total);
-    } else Serial.println("[Modbus] FAIL: reg 200");
-
-    modbusOk = anyOk;
-}
-
-// ---------------------------------------------------------------------------
-// Poll BMS
-// ---------------------------------------------------------------------------
-void pollBMS(JsonDocument& doc) {
-    if (!CAN_ENABLED) return;
-
-    twai_message_t msg;
-    int count = 0;
-    while (twai_receive(&msg, pdMS_TO_TICKS(10)) == ESP_OK) {
-        bms_decode(bmsData, BMS_CAN_ADDR, msg.identifier, msg.data);
-        count++;
-    }
-
-    canOk = bmsData.valid;
-    if (!canOk) { Serial.println("[BMS] No data"); return; }
-
-    doc["bms_soc_pct"]            = bmsData.soc_pct;
-    doc["bms_soh_pct"]            = bmsData.soh_pct;
-    doc["bms_voltage_v"]          = bmsData.voltage_v;
-    doc["bms_current_a"]          = bmsData.current_a;
-    doc["bms_temperature_c"]      = bmsData.temperature_c;
-    doc["bms_max_charge_a"]       = bmsData.max_charge_a;
-    doc["bms_max_discharge_a"]    = bmsData.max_discharge_a;
-    doc["bms_charge_forbidden"]   = bmsData.charge_forbidden   ? 1 : 0;
-    doc["bms_discharge_forbidden"]= bmsData.discharge_forbidden ? 1 : 0;
-    doc["bms_fault"]              = bmsData.fault;
-    doc["bms_alarm"]              = bmsData.alarm;
-    doc["bms_status"]             = bmsData.status;
-    Serial.printf("[BMS] SOC=%d%% V=%.1fV I=%.1fA T=%.1f°C (%d frames)\n",
-                  bmsData.soc_pct, bmsData.voltage_v,
-                  bmsData.current_a, bmsData.temperature_c, count);
-}
-
 // ---------------------------------------------------------------------------
 // Setup / Loop
 // ---------------------------------------------------------------------------
@@ -343,7 +233,6 @@ void setup() {
     Serial.begin(115200);
     delay(300);
     Serial.println("\n[Boot] test_dashboard starting...");
-    Serial.printf("[Boot] Modbus=%d  CAN=%d\n", MODBUS_ENABLED, CAN_ENABLED);
 
     // Display
     pinMode(LCD_BLK, OUTPUT); digitalWrite(LCD_BLK, HIGH);
@@ -352,24 +241,9 @@ void setup() {
     tft.setCursor(4, 60); tft.print("Connecting...");
 
     // RS-485
-    if (MODBUS_ENABLED) {
-        modbusInit();
-        Serial.println("[Boot] RS-485 ready");
-        Serial.println("[Boot] Running inverter init...");
-        bool initOk = inverter_run_init(writeRegister, readRegisters);
-        Serial.printf("[Boot] Inverter init %s\n", initOk ? "done" : "WARNING: some registers failed");
-    }
-
-    // CAN
-    if (CAN_ENABLED) {
-        twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_NORMAL);
-        twai_timing_config_t  t = CAN_SPEED;
-        twai_filter_config_t  f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-        if (twai_driver_install(&g, &t, &f) == ESP_OK && twai_start() == ESP_OK)
-            Serial.println("[Boot] CAN ready");
-        else
-            Serial.println("[Boot] CAN init failed");
-    }
+    Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    inverterInit(Serial2, RS485_DE_RE_PIN);
+    bmsInit(Serial2, RS485_DE_RE_PIN);
 
     connectWiFi();
     connectMQTT();
@@ -390,8 +264,22 @@ void loop() {
         lastPoll = millis();
 
         JsonDocument doc;
-        pollInverter(doc);
+        pollModbus(doc);
         pollBMS(doc);
+
+        // Update display vars from doc
+        modbusOk = doc.containsKey("running");
+        canOk    = doc.containsKey("bms_soc_pct");
+        disp_p_inv  = doc["p_inv_kw"]   | 0.0f;
+        disp_freq   = doc["freq_hz"]     | 0.0f;
+        disp_v_a    = doc["v_a"]         | 0.0f;
+        disp_pf     = doc["pf_total"]    | 0.0f;
+        disp_grid_p = doc["grid_p_kw"]   | 0.0f;
+        disp_load_p = doc["load_p_kw"]   | 0.0f;
+        disp_soc    = doc["bms_soc_pct"] | 0.0f;
+        disp_bms_v  = doc["bms_voltage_v"]| 0.0f;
+        disp_bms_i  = doc["bms_current_a"]| 0.0f;
+        disp_bms_t  = doc["bms_temp_avg_c"]| 0.0f;
 
         if (mqttOk) {
             char payload[2048];

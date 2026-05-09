@@ -3,43 +3,60 @@
 #include <stdbool.h>
 
 // =============================================================================
-// bms_core — pure Pylontech high-voltage CAN frame decoding
+// bms_core — LWS BMS Modbus register parsing
 // No Arduino/ESP-IDF dependencies — safe to include in host unit tests.
-// Protocol: CANBus Protocol Pylontech High Voltage V1.24
+// Protocol: LWS Modbus Communication Protocol V1.36
 // =============================================================================
 
 struct BmsData {
+    // — Electrical —
     float    voltage_v;           // total pack voltage (V)
     float    current_a;           // current (A, positive=charging, negative=discharging)
-    float    temperature_c;       // BMS temperature (°C)
-    uint8_t  soc_pct;             // State of Charge (%)
-    uint8_t  soh_pct;             // State of Health (%)
-    uint8_t  soe_pct;             // State of Energy available (%)
     float    max_charge_a;        // max allowed charge current (A)
     float    max_discharge_a;     // max allowed discharge current (A)
-    float    charge_cutoff_v;     // charge cutoff voltage (V)
-    float    discharge_cutoff_v;  // discharge cutoff voltage (V)
+    float    charge_cutoff_v;     // charge cutoff voltage (V)   — overcharge protection on
+    float    discharge_cutoff_v;  // discharge cutoff voltage (V) — overdischarge protection on
 
-    bool     charge_forbidden;    // BMS prohibits charging
-    bool     discharge_forbidden; // BMS prohibits discharging
+    // — State —
+    float    soc_pct;             // State of Charge (%)
+    float    soh_pct;             // State of Health (%)
 
-    uint8_t  status;              // 0=sleep 1=charging 2=discharging 3=idle
-    bool     force_charge_req;    // BMS requests forced charge
+    // — Temperature —
+    float    temp_avg_c;          // average cell temperature (°C)
+    float    temp_cell_max_c;     // max cell temperature (°C)
+    float    temp_cell_min_c;     // min cell temperature (°C)
+    float    temp_fet_c;          // FET temperature (°C)
 
-    uint8_t  fault;
-    uint16_t alarm;
-    uint16_t protection;
+    // — Cell voltages —
+    float    cell_voltage_max_v;  // max cell voltage (V)
+    float    cell_voltage_min_v;  // min cell voltage (V)
 
-    bool     valid;               // true once at least one 0x421 message received
+    // — Status flags —
+    bool     charging;            // BMS in charging state
+    bool     discharging;         // BMS in discharging state
+    bool     charge_forbidden;    // charge MOSFET off → charging forbidden
+    bool     discharge_forbidden; // discharge MOSFET off → discharging forbidden
+    bool     force_charge_req;    // low SOC alarm → force charge request
+
+    // — Diagnostics —
+    uint8_t  fault;               // fault byte (0x1007 byte0)
+    uint16_t alarm;               // alarm word (0x1005)
+    uint16_t protection;          // protection word (0x1006)
+
+    bool     valid;               // true once successfully parsed
 };
 
-// Decode one CAN frame (29-bit extended id, 8 data bytes) into bms.
-// bms_addr is the BMS address (1-15, set on front panel).
-// Frame IDs (29-bit extended, LSB byte order, 500kbps):
-//   0x4210+addr — pack voltage, current, temperature, SOC, SOH
-//   0x4220+addr — charge/discharge voltage and current limits
-//   0x4250+addr — status, fault, alarm, protection
-//   0x4280+addr — forbidden flags, SOE
-// Call repeatedly as frames arrive — each ID updates a different field group.
-void bms_decode(BmsData& bms, uint8_t bms_addr,
-                uint32_t can_id, const uint8_t* data);
+// Register map — read 0x1000..0x1012 in one block (19 registers)
+// plus 0x101D and 0x1020 (cutoff voltages) and 0x2500..0x2501 (max currents)
+#define BMS_REG_START       0x1000
+#define BMS_REG_COUNT       19      // 0x1000–0x1012 (skip 0x100F and 0x1013 reserved)
+#define BMS_REG_CHG_CUTOFF  0x101D
+#define BMS_REG_DISCHG_CUTOFF 0x1020
+#define BMS_REG_MAX_CHG_A   0x2500
+#define BMS_REG_MAX_DISCHG_A 0x2501
+
+// Parse a block of registers read starting at BMS_REG_START into bms.
+// r[i] = register value at address (BMS_REG_START + i)
+void bms_parse_modbus(const int16_t* r, BmsData& bms,
+                      int16_t chg_cutoff_raw, int16_t dischg_cutoff_raw,
+                      uint16_t max_chg_raw, uint16_t max_dischg_raw);

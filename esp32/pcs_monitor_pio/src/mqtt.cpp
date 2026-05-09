@@ -1,7 +1,6 @@
 #include "mqtt.h"
 #include "config.h"
-#include "modbus.h"
-#include "inverter_scales.h"
+#include "inverter.h"
 #include <WiFi.h>
 
 WiFiClient   wifiClient;
@@ -35,19 +34,18 @@ void onRpcMessage(char* topic, byte* payload, unsigned int length) {
     Serial.printf("[RPC] Método: %s\n", method);
 
     if (strcmp(method, "powerOn") == 0) {
-        success = writeRegister(REG_POWER_ON, 1);
+        success = inverterPowerOn();
         Serial.printf("[RPC] powerOn: %s\n", success ? "OK" : "FAIL");
 
     } else if (strcmp(method, "shutdown") == 0) {
-        success = writeRegister(REG_SHUTDOWN, 1);
+        success = inverterShutdown();
         Serial.printf("[RPC] shutdown: %s\n", success ? "OK" : "FAIL");
 
     } else if (strcmp(method, "setPower") == 0) {
         float kw = req["params"]["value"] | 0.0f;
         kw = constrain(kw, -100.0f, 100.0f);
-        int16_t raw = (int16_t)(kw / SCALE_SET_POWER_KW);
-        success = writeRegister(REG_SET_POWER, raw);
-        Serial.printf("[RPC] setPower %.1f kW (raw=%d): %s\n", kw, raw, success ? "OK" : "FAIL");
+        success = inverterSetPower(kw);
+        Serial.printf("[RPC] setPower %.1f kW: %s\n", kw, success ? "OK" : "FAIL");
         if (success)
             response = "{\"result\":\"ok\",\"value\":" + String(kw, 1) + "}";
 

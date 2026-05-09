@@ -73,16 +73,27 @@ bool mqttOk  = false;
 // Simulated state
 // ---------------------------------------------------------------------------
 struct Sim {
-    float soc       = 75.0f;
-    float bms_v     = 496.0f;
-    float bms_i     = 0.0f;
-    float bms_temp  = 24.0f;
-    float p_inv     = 12.0f;
-    float grid_p    = 3.0f;
-    float load_p    = 9.0f;
-    float freq      = 50.0f;
-    float v_phase   = 231.0f;
-    float pf        = 0.98f;
+    // Inverter
+    float soc          = 75.0f;
+    float p_inv        = 12.0f;
+    float grid_p       = 3.0f;
+    float load_p       = 9.0f;
+    float freq         = 50.0f;
+    float v_phase      = 231.0f;
+    float pf           = 0.98f;
+    // BMS — LWS Modbus fields
+    float bms_v        = 496.0f;
+    float bms_i        = 40.0f;    // positive = charging
+    float bms_temp_avg = 24.0f;
+    float bms_temp_max = 26.0f;
+    float bms_temp_min = 22.0f;
+    float bms_temp_fet = 28.0f;
+    float bms_cell_v_max = 3.31f;
+    float bms_cell_v_min = 3.28f;
+    float bms_max_chg_a   = 200.0f;
+    float bms_max_dischg_a= 200.0f;
+    float bms_chg_cutoff  = 537.6f;
+    float bms_dischg_cutoff = 432.0f;
 } sim;
 
 float drift(float v, float step, float lo, float hi) {
@@ -91,16 +102,21 @@ float drift(float v, float step, float lo, float hi) {
 }
 
 void updateSim() {
-    sim.soc      = drift(sim.soc,     0.2f,  10.0f,  95.0f);
-    sim.bms_v    = drift(sim.bms_v,   1.0f, 450.0f, 540.0f);
-    sim.bms_i    = drift(sim.bms_i,   5.0f,-200.0f, 200.0f);
-    sim.bms_temp = drift(sim.bms_temp,0.2f,  15.0f,  45.0f);
-    sim.p_inv    = drift(sim.p_inv,   1.0f,   0.0f,  30.0f);
-    sim.grid_p   = drift(sim.grid_p,  1.0f,   0.0f,  50.0f);
-    sim.load_p   = drift(sim.load_p,  0.5f,   1.0f,  20.0f);
-    sim.freq     = drift(sim.freq,   0.02f,  49.8f,  50.2f);
-    sim.v_phase  = drift(sim.v_phase, 0.5f, 220.0f, 240.0f);
-    sim.pf       = drift(sim.pf,     0.01f,  0.85f,   1.0f);
+    sim.soc            = drift(sim.soc,          0.2f,  10.0f,  95.0f);
+    sim.bms_v          = drift(sim.bms_v,         1.0f, 450.0f, 540.0f);
+    sim.bms_i          = drift(sim.bms_i,         5.0f,-200.0f, 200.0f);
+    sim.bms_temp_avg   = drift(sim.bms_temp_avg,  0.2f,  15.0f,  45.0f);
+    sim.bms_temp_max   = sim.bms_temp_avg + 2.0f;
+    sim.bms_temp_min   = sim.bms_temp_avg - 2.0f;
+    sim.bms_temp_fet   = sim.bms_temp_avg + 4.0f;
+    sim.bms_cell_v_max = drift(sim.bms_cell_v_max, 0.005f, 3.0f, 3.65f);
+    sim.bms_cell_v_min = sim.bms_cell_v_max - drift(0.03f, 0.002f, 0.01f, 0.08f);
+    sim.p_inv          = drift(sim.p_inv,         1.0f,   0.0f,  30.0f);
+    sim.grid_p         = drift(sim.grid_p,         1.0f,   0.0f,  50.0f);
+    sim.load_p         = drift(sim.load_p,         0.5f,   1.0f,  20.0f);
+    sim.freq           = drift(sim.freq,          0.02f,  49.8f,  50.2f);
+    sim.v_phase        = drift(sim.v_phase,        0.5f, 220.0f, 240.0f);
+    sim.pf             = drift(sim.pf,            0.01f,  0.85f,   1.0f);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,8 +226,8 @@ void screenBattery() {
     snprintf(buf, sizeof(buf), "%.1f A", sim.bms_i);
     drawRow(4, "Current", buf, sim.bms_i >= 0 ? C_OK : C_WARN);
 
-    snprintf(buf, sizeof(buf), "%.1f C", sim.bms_temp);
-    drawRow(5, "Temp", buf, sim.bms_temp > 35 ? C_WARN : C_VALUE);
+    snprintf(buf, sizeof(buf), "%.1f C", sim.bms_temp_avg);
+    drawRow(5, "Temp avg", buf, sim.bms_temp_avg > 35 ? C_WARN : C_VALUE);
 }
 
 // ---------------------------------------------------------------------------
@@ -309,21 +325,28 @@ void publishTelemetry() {
     doc["load_p_kw"]    = sim.load_p;
     doc["load_s_kva"]   = sim.load_p / sim.pf;
 
-    doc["bms_soc_pct"]            = (int)sim.soc;
-    doc["bms_soh_pct"]            = 98;
-    doc["bms_soe_pct"]            = (int)sim.soc;
-    doc["bms_voltage_v"]          = sim.bms_v;
-    doc["bms_current_a"]          = sim.bms_i;
-    doc["bms_temperature_c"]      = sim.bms_temp;
-    doc["bms_max_charge_a"]       = 200.0f;
-    doc["bms_max_discharge_a"]    = 200.0f;
-    doc["bms_status"]             = sim.bms_i > 0 ? 1 : (sim.bms_i < 0 ? 2 : 3);
-    doc["bms_charge_forbidden"]   = 0;
-    doc["bms_discharge_forbidden"]= 0;
-    doc["bms_fault"]              = 0;
-    doc["bms_alarm"]              = 0;
-    doc["bms_protection"]         = 0;
-    doc["bms_force_charge"]       = 0;
+    doc["bms_soc_pct"]             = sim.soc;
+    doc["bms_soh_pct"]             = 98.0f;
+    doc["bms_voltage_v"]           = sim.bms_v;
+    doc["bms_current_a"]           = sim.bms_i;
+    doc["bms_temp_avg_c"]          = sim.bms_temp_avg;
+    doc["bms_temp_cell_max_c"]     = sim.bms_temp_max;
+    doc["bms_temp_cell_min_c"]     = sim.bms_temp_min;
+    doc["bms_temp_fet_c"]          = sim.bms_temp_fet;
+    doc["bms_cell_v_max"]          = sim.bms_cell_v_max;
+    doc["bms_cell_v_min"]          = sim.bms_cell_v_min;
+    doc["bms_max_charge_a"]        = sim.bms_max_chg_a;
+    doc["bms_max_discharge_a"]     = sim.bms_max_dischg_a;
+    doc["bms_charge_cutoff_v"]     = sim.bms_chg_cutoff;
+    doc["bms_discharge_cutoff_v"]  = sim.bms_dischg_cutoff;
+    doc["bms_charging"]            = sim.bms_i > 0 ? 1 : 0;
+    doc["bms_discharging"]         = sim.bms_i < 0 ? 1 : 0;
+    doc["bms_charge_forbidden"]    = 0;
+    doc["bms_discharge_forbidden"] = 0;
+    doc["bms_force_charge"]        = 0;
+    doc["bms_fault"]               = 0;
+    doc["bms_alarm"]               = 0;
+    doc["bms_protection"]          = 0;
 
     char payload[2048];
     serializeJson(doc, payload, sizeof(payload));
