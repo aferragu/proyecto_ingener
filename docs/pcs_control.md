@@ -330,11 +330,7 @@ Publica cada 5s:
 Caso de prueba típico: `set_power=1`, carga=1kW → esperado `p_inv_kw≈1`, `grid_p_kw≈0`, `dc_current_a>0`.
 
 ### test_dashboard
-Firmware de integración sin control ni RPC. Flags independientes:
-- `MODBUS_ENABLED` — lee inversor via RS-485
-- `CAN_ENABLED` — lee BMS via CAN
-
-Si un flag está en 0, esa fuente se omite y el punto en la pantalla queda rojo. No hay datos simulados como fallback. Útil para validar en etapas: primero Modbus, después CAN.
+Firmware de integración completo: lee inversor y BMS via Modbus, publica a ThingsBoard, muestra en pantalla. Los dots en la pantalla de status se ponen verdes/rojos según si la última lectura fue exitosa. Sin datos simulados como fallback.
 
 ---
 
@@ -351,15 +347,15 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 ### config.h — parámetros clave
 
 ```cpp
-#define MODBUS_DEVICE_ID 1      // confirmar con DIP switch del inversor
-#define RS485_DE_RE_PIN  5      // GPIO5 — NO usar GPIO4 (LCD RST en Ideaspark)
-#define BMS_CAN_ADDR     2      // dirección configurada en panel frontal del BMS
-#define CAN_SPEED        TWAI_TIMING_CONFIG_500KBITS()
-#define TB_HOST          "thingsboard.cloud"
-#define TB_PORT          1883
+#define MODBUS_DEVICE_ID     1    // DIP switch del inversor (1–247)
+#define BMS_MODBUS_DEVICE_ID 51   // DIP switch del BMS (51–65)
+#define RS485_DE_RE_PIN      5    // GPIO5 — NO usar GPIO4 (LCD RST en Ideaspark)
+#define RS485_BAUD           115200
+#define TB_HOST              "thingsboard.cloud"
+#define TB_PORT              1883
 
 #define POLL_MODBUS_MS   5000
-#define POLL_CAN_MS      1000
+#define POLL_BMS_MS      2000
 #define PUBLISH_MS       10000
 #define VERIFY_INIT_MS   60000
 ```
@@ -372,16 +368,15 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 |---|---|
 | PubSubClient (Nick O'Leary) | MQTT |
 | ArduinoJson (Benoit Blanchon) | JSON payload — usar v7 (`JsonDocument`) |
+| ModbusMaster (Doc Walker) | Modbus RTU sobre RS-485 |
 | Adafruit ST7789 + Adafruit GFX | Display |
-| driver/twai.h | CAN bus (incluida en ESP32 Arduino core) |
 
 ---
 
 ## Failsafe y robustez
 
 - Si el ESP32 falla, el inversor sigue operando con los últimos parámetros escritos
-- `verifyAndReinit()` restaura la config si el inversor se reinicia
-- `inverter_run_init()` disponible en `lib/` — cualquier sketch puede inicializar el inversor correctamente
+- `verifyAndReinit()` restaura la config si el inversor se reinicia (corre cada 60s)
 - Reconexión automática WiFi y MQTT en el loop
 - ⚠ Conocido: `connectMQTT()` puede bloquearse si el broker no responde — pendiente timeout explícito
 
@@ -390,32 +385,19 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 ## TODO
 
 ### Hardware pendiente
-- Cablear MAX485 DE+RE a **GPIO5**
 - Confirmar dirección Modbus del inversor via DIP switch → `MODBUS_DEVICE_ID` en `config.h`
-- `BMS_CAN_ADDR` = 2 en `config.h` (ya configurado en panel frontal del BMS)
-- Conseguir módulo CAN (MCP2515+TJA1050 en camino) para pruebas BMS
+- Configurar BMS a 115200 bps antes de conectar al bus compartido
+- Confirmar `BMS_MODBUS_DEVICE_ID` (DIP switch en la batería)
 - Verificar firmware inversor RTU ≥ V3.0 (reg 19 ≥ 30) para registros de carga 200–213
+- Verificar los 150A de max DC current (regs 763/764) contra datasheet de la batería
 
 ### Pruebas de hardware pendientes
 - `test_modbus_hw` — verificar lectura de registros del inversor
-- `test_set_power` — verificar control de potencia con carga real
-- `test_can_hw` — verificar decodificación de tramas BMS
-- `test_dashboard` — integración completa Modbus + display + ThingsBoard
+- `test_set_power` — verificar control de potencia con carga real, confirmar si reg 135 es AC o DC
+- `test_dashboard` — integración completa Modbus inversor + BMS + display + ThingsBoard
 
 ### Firmware
-- Integrar display en firmware de producción (`main.cpp` + `display.cpp`)
-- Activar y validar `emsUpdate()` con estrategia acordada
+- Activar y validar `emsUpdate()` con estrategia acordada (ver `ems_design.md`)
 - Agregar shared attributes ThingsBoard para configurar parámetros EMS remotamente
 - Resolver bloqueo de `connectMQTT()` con timeout explícito
-- Migrar a FreeRTOS dual-core (Core 0: MQTT/WiFi, Core 1: Modbus/CAN/EMS)
-- ⚠ Renombrar `bms_current_a` → `bms_current` en telemetría (sufijo `_a` ambiguo con fase A del lado AC)
-
-### ThingsBoard
-- Dashboard de producción final (post pruebas de hardware)
-- Agregar widgets RPC: botones powerOn/shutdown
-- Conectar rule chain de alarmas al Root Rule Chain
-- Investigar protocolo SacredSun General V1.34 (RS-485 del BMS) para eventual migración de CAN a RS-485
-
-### Investigación
-- Captura Wireshark del EMS del fabricante en modo self-use + backup power
-- Verificar comportamiento de reg 353 en modo grid-tied vs off-grid
+- Integrar display en loop principal con datos reales

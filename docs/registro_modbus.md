@@ -135,7 +135,8 @@ Los registros están divididos en segmentos. **No se pueden leer registros cruza
 | 763 | Max DC discharge current | 1500 | 150.0 A (×0.1) |
 | 764 | Max DC charge current | 1500 | 150.0 A (×0.1) |
 | 795 | Leakage detection | 0 | Deshabilitado |
-| 873 | Anti-backflow (bit0) | 1 | Habilitado |
+| 873 | Function Management | 0 | Self-use mode OFF (bit0=0 → reg 135 activo) |
+| 758 | Grid scheduling mode | 0 | AC side constant power |
 
 ---
 
@@ -157,12 +158,19 @@ Los registros están divididos en segmentos. **No se pueden leer registros cruza
 - **Bitfield:** (valor >> bit) & 0x01
 - **CRC16:** polinomio 0xA001, byte bajo primero en el frame
 
-## Secuencia de inicialización (replicada del EMS del fabricante)
-1. reg 763 = 1500
-2. reg 764 = 1500
-3. reg 341 = 1
-4. reg 652 = 0
-5. reg 873 = 1
-6. reg 795 = 0
-7. reg 656 = 0
-8. reg 650 = 1 → Power ON
+## Secuencia de inicialización
+
+| Paso | Registro | Valor | Descripción |
+|---|---|---|---|
+| 1 | 763 | 1500 | Max corriente descarga DC = 150 A |
+| 2 | 764 | 1500 | Max corriente carga DC = 150 A |
+| 3 | 873 | 0 | Self-use mode OFF — habilita control por reg 135 |
+| 4 | 758 | 0 | AC side constant power mode |
+| 5 | 341 | 1 | Control por fase individual |
+| 6 | 652 | 0 | PV apagado |
+| 7 | 795 | 0 | Detección de fuga deshabilitada |
+| 8 | 656 | 0 | DCDC apagado |
+| 9 | 135 | 0 | Setpoint = 0 kW antes de encender |
+| 10 | 650 | 1 | Power ON |
+
+> **reg 873 = 0 es crítico.** El EMS oficial del fabricante escribe 873 bit0=1 (self-use mode) porque opera con reg 353. En modo on-grid con reg 135, el bit0 debe estar en 0 — si no, reg 135 no tiene efecto.
