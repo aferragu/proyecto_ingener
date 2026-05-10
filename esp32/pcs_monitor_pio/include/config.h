@@ -20,7 +20,10 @@
                                 // and cannot be used for RS-485. Wire MAX485 DE+RE to GPIO5.
 #define MODBUS_DEVICE_ID 1      // Dirección DIP switch del inversor (1-247)
 
-// BMS Modbus
+// Protocolo Modbus del inversor
+// Descomentar si el firmware es >= V3.0 — habilita lectura de regs 200-213 (load)
+// El firmware actual es V2.88 — dejar comentado
+// #define INVERTER_PROTOCOL_V3
 #define BMS_MODBUS_DEVICE_ID  51    // Dirección DIP switch del BMS (51-65)
 
 // LED de status — GPIO2 (LED integrado NodeMCU, activo en LOW)

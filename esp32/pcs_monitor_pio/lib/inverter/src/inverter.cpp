@@ -145,6 +145,10 @@ void verifyAndReinit() {
 // ---------------------------------------------------------------------------
 // Set power
 // ---------------------------------------------------------------------------
+bool inverterReadRaw(uint16_t reg, int16_t* out) {
+    return inverterRead(reg, 1, out);
+}
+
 bool inverterSetPower(float kw) {
     int16_t raw = (int16_t)(kw / SCALE_SET_POWER_KW);
     return inverterWrite(REG_SET_POWER, raw);
@@ -227,6 +231,7 @@ void pollModbus(JsonDocument& telemetry) {
         telemetry["grid_p_kw"]    = g.p_kw;
     } else Serial.println("[Inverter] Error: reg 170-179 / 192 (grid)");
 
+#ifdef INVERTER_PROTOCOL_V3
     int16_t load_raw[REG_LOAD_COUNT];
     if (inverterRead(REG_LOAD_START, REG_LOAD_COUNT, load_raw)) {
         LoadData l;
@@ -244,4 +249,5 @@ void pollModbus(JsonDocument& telemetry) {
         telemetry["load_p_kw"]    = l.p_total;
         telemetry["load_s_kva"]   = l.s_total;
     } else Serial.println("[Inverter] Error: reg 200-213 (load V3.0)");
+#endif
 }

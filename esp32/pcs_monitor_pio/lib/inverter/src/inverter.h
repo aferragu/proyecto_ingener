@@ -11,3 +11,4 @@ void pollModbus(JsonDocument& telemetry);
 bool inverterSetPower(float kw);
 bool inverterPowerOn();
 bool inverterShutdown();
+bool inverterReadRaw(uint16_t reg, int16_t* out);  // diagnostic — read single register

@@ -1,15 +1,17 @@
 // =============================================================================
-// test_set_power — Control de potencia vía ThingsBoard → inversor SinoSoar
+// test_set_power — Verificación de control de potencia vía ThingsBoard
 //
 // Qué hace:
-//   1. Conecta WiFi y ThingsBoard
-//   2. Al arrancar: lee el valor actual del shared attribute "set_power" y lo aplica
-//   3. Al cambiar: recibe notificación cuando "set_power" cambia y lo aplica
-//   4. Cada 5s: publica telemetría completa del inversor (AC, DC, grid, load)
-//      más set_power_requested para ver en dashboard qué se pidió
+//   1. Init inversor: setea 873=0, 758=0, 135=0, y demás registros de config
+//   2. Lee y printea los registros clave por Serial para verificar que quedaron
+//      (873, 758, 135, 334, 650, 341, 763, 764)
+//   3. Conecta WiFi y ThingsBoard
+//   4. Al arrancar: lee el valor actual del shared attribute "set_power" y lo aplica
+//   5. Al cambiar: recibe notificación cuando "set_power" cambia y lo aplica
+//   6. Cada 5s: publica telemetría completa del inversor + set_power_requested
 //
 // ThingsBoard:
-//   Shared attribute (entrada): set_power  [kW, -100..+100, precisión 0.1kW]
+//   Shared attribute (entrada): set_power  [kW, -2..+2 en testbed, precisión 0.1kW]
 //                                          positivo = descarga batería
 //                                          negativo = carga batería
 //   Telemetría (salida): todos los keys de pollModbus() + set_power_requested
@@ -53,6 +55,35 @@ PubSubClient mqtt(wifiClient);
 
 float setPowerRequested = 0.0f;   // last value received from ThingsBoard
 bool  newSetpoint       = false;  // flag: apply setpoint on next loop
+
+// ---------------------------------------------------------------------------
+// Read and print key config registers after init
+// ---------------------------------------------------------------------------
+void printConfigRegisters() {
+    Serial.println("\n[Config] Reading key registers after init:");
+
+    static const struct { uint16_t reg; const char* name; } regs[] = {
+        { 873, "Function mgmt (873) — bit0=self-use, must be 0" },
+        { 758, "Grid sched mode (758) — must be 0 for reg 135"  },
+        { 135, "Active power setpoint (135)"                    },
+        { 334, "BMS power scheduling enable (334)"              },
+        { 650, "Power on (650)"                                 },
+        { 341, "3-phase ctrl (341)"                             },
+        { 763, "Max DC discharge A (763)"                       },
+        { 764, "Max DC charge A (764)"                          },
+    };
+
+    for (const auto& r : regs) {
+        int16_t val;
+        if (inverterReadRaw(r.reg, &val))
+            Serial.printf("  reg %3d = %6d (0x%04X)  — %s\n",
+                          r.reg, val, (uint16_t)val, r.name);
+        else
+            Serial.printf("  reg %3d = FAIL — %s\n", r.reg, r.name);
+        delay(50);
+    }
+    Serial.println();
+}
 
 // ---------------------------------------------------------------------------
 // Apply setpoint to inverter
@@ -141,6 +172,7 @@ void setup() {
 
     Serial2.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
     inverterInit(Serial2, RS485_DE_RE_PIN);
+    printConfigRegisters();
 
     connectWiFi();
     connectMQTT();

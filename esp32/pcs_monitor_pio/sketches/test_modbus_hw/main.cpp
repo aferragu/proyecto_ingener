@@ -88,11 +88,15 @@ void pollAndPrint() {
         Serial.printf("  freq=%.2fHz  v_a=%.1fV  p=%.2fkW\n", g.freq_hz, g.v_a, g.p_kw);
     } else Serial.println("\n[Grid] FAIL — regs 170-179/192");
 
+#ifdef INVERTER_PROTOCOL_V3
     if (inv_read(REG_LOAD_START, REG_LOAD_COUNT, raw)) {
         LoadData l; inverter_parse_load(raw, l);
         Serial.println("\n[Load]");
         Serial.printf("  p=%.2fkW  s=%.2fkVA\n", l.p_total, l.s_total);
     } else Serial.println("\n[Load] FAIL — regs 200-213 (requires RTU V3.0+)");
+#else
+    Serial.println("\n[Load] skipped — INVERTER_PROTOCOL_V3 not defined");
+#endif
 
     Serial.println("\n[Version regs 0-9]");
     if (inv_read(REG_VERSION_START, 10, raw))

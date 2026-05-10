@@ -146,7 +146,7 @@ Loop continuo
 | 1 | 763 | 1500 | Max corriente descarga DC = 150 A |
 | 2 | 764 | 1500 | Max corriente carga DC = 150 A |
 | 3 | 873 | 0 | Self-use mode OFF → habilita control por reg 135 |
-| 4 | 758 | 0 | AC side constant power mode |
+| 4 | 758 | 0 | AC side constant power mode — habilita reg 135 como setpoint |
 | 5 | 341 | 1 | Control por fase individual |
 | 6 | 652 | 0 | PV apagado |
 | 7 | 795 | 0 | Detección de fuga deshabilitada |
@@ -154,7 +154,11 @@ Loop continuo
 | 9 | 135 | 0 | Setpoint = 0 kW antes de encender |
 | 10 | 650 | 1 | Power ON |
 
-> **reg 873 = 0 es crítico** — si está en 1 (self-use mode), el reg 135 no tiene efecto. El EMS oficial del fabricante usa 873=1 porque opera en modo autoconsumo con reg 353; nosotros operamos on-grid con reg 135.
+> **reg 873 = 0 es crítico** — si está en 1 (self-use mode), el inversor gestiona la carga/descarga de la batería internamente y el reg 135 no tiene efecto. El EMS oficial del fabricante usa 873=1 con reg 353; nosotros operamos on-grid con EMS externo vía reg 135.
+
+> **reg 758 = 0** es condición necesaria para que reg 135 funcione (AC side constant power mode). Aplica al SP60HBG2 — confirmado en protocolo V2.2.0.
+
+> **reg 334** (BMS power scheduling) se deja en 0 — el EMS externo controla todo, sin que el inversor hable directamente con el BMS.
 
 **Bloques Modbus leídos en cada ciclo:**
 
@@ -177,8 +181,13 @@ Loop continuo
 | `inverterSetPower(kw)` | Escribe setpoint AC reg 135 (0.1 kW precisión) |
 | `inverterPowerOn()` | reg 650 = 1 |
 | `inverterShutdown()` | reg 650 = 0 |
+| `inverterReadRaw(reg, out)` | Lee un registro individual — uso diagnóstico |
 | `verifyAndReinit()` | Verifica y corrige registros de config |
 | `readFirmwareVersion(mqtt)` | Lee versión, publica como atributos TB |
+
+> **reg 758** — el protocolo V3.0 no lo lista para el SP60HBG2, pero el V2.2.0 sí lo incluye para todos los modelos. Pendiente verificar en hardware. Si no responde, el modo AC constant power puede ser el default y el reg 135 funciona igual.
+
+> **INVERTER_PROTOCOL_V3** — definir en `config.h` para habilitar la lectura de regs 200–213 (load data). Requiere firmware RTU ≥ V3.0 (reg 19 ≥ 30). Con firmware V2.88 dejar comentado — si se intenta leer, el inversor puede no responder y contaminar el ciclo de polling.
 
 ### bms_parser / bms
 
@@ -298,9 +307,14 @@ Pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos
 Conecta al inversor via RS-485 y vuelca todos los bloques a Serial cada 5s con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Instancia propia de `ModbusMaster` para diagnóstico granular. No requiere WiFi.
 
 ### test_set_power
-Prueba el control de potencia end-to-end: ThingsBoard knob → shared attribute `set_power` → `inverterSetPower()` → telemetría de confirmación.
+Prueba el control de potencia end-to-end con verificación explícita de registros.
 
-Al arrancar: corre `inverterInit()`, lee el `set_power` actual de ThingsBoard y lo aplica. Al cambiar el knob: aplica el nuevo valor inmediatamente.
+Al arrancar:
+1. Corre `inverterInit()` — setea 873=0, 758=0, 135=0, demás registros de config
+2. Lee y printea por Serial los registros clave (873, 758, 135, 334, 650, 341, 763, 764) para verificar que quedaron correctamente escritos
+3. Lee el `set_power` actual de ThingsBoard y lo aplica
+
+Al cambiar el knob: aplica el nuevo valor inmediatamente vía reg 135.
 
 Rango del testbed: **−2 a +2 kW** (cambiar a −100/+100 para producción en `applySetPower()`).
 
@@ -334,6 +348,11 @@ Nunca subir al repo. Crear desde `credentials.h.example`.
 #define POLL_BMS_MS      2000
 #define PUBLISH_MS       10000
 #define VERIFY_INIT_MS   60000
+
+// Descomentar si el firmware del inversor es >= V3.0 (reg 19 >= 30)
+// Habilita lectura de regs 200-213 (load data)
+// El firmware actual es V2.88 — dejar comentado
+// #define INVERTER_PROTOCOL_V3
 ```
 
 ---
