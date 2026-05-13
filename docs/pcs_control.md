@@ -291,6 +291,7 @@ Ubicación: `sketches/`. Cada uno es un firmware independiente para verificar un
 | `test_mqtt` | — | ✓ dummy | — | — | Verificar WiFi y ThingsBoard |
 | `test_tb` | ✓ simulado | ✓ simulado | — | — | Construir y validar dashboard TB |
 | `test_modbus_hw` | — | — | ✓ real | — | Verificar comunicación con inversor |
+| `test_bms_hw` | — | — | — | ✓ real (solo) | Verificar comunicación con BMS LWS |
 | `test_set_power` | — | ✓ real | ✓ real | — | Probar control de potencia end-to-end |
 | `test_dashboard` | ✓ real | ✓ real | ✓ real | ✓ real | Integración completa con HW real |
 
@@ -304,7 +305,12 @@ Conecta WiFi, publica telemetría dummy a ThingsBoard cada 5s, escucha y respond
 Pantalla + ThingsBoard con datos simulados que derivan lentamente. Publica todos los keys del firmware real — inversor SP6030 + BMS LWS completos. Usar para construir y ajustar el dashboard de ThingsBoard sin hardware.
 
 ### test_modbus_hw
-Conecta al inversor via RS-485 y vuelca todos los bloques a Serial cada 5s con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Instancia propia de `ModbusMaster` para diagnóstico granular. No requiere WiFi.
+Conecta al inversor via RS-485 y vuelca todos los bloques a Serial cada 5s con valores escalados: Status, AC, DC, Grid, Load + dump crudo de registros 0–9. Instancia propia de `ModbusMaster` para diagnóstico granular.
+
+### test_bms_hw
+Conecta al BMS LWS via RS-485 (FC04, **9600 baud**) y vuelca todos los registros a Serial cada 5s: tensión, corriente, SOC, SOH, temperaturas, voltajes de celda, cutoff voltages, max currents, status flags.
+
+**NOTA:** El BMS opera a 9600 baud fijo (no configurable). Para este test conectar el BMS solo en el bus — en producción el BMS necesitará un UART separado (Serial1) ya que el inversor opera a 115200. No requiere WiFi.
 
 ### test_set_power
 Prueba el control de potencia end-to-end con verificación explícita de registros.
